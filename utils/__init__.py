@@ -1,0 +1,1 @@
+from get_tables import dump_db_json_schema

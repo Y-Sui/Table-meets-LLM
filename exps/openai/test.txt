@@ -1,0 +1,364 @@
+cosql
+============================
+<request>
+Generate SQL based on the utterance and database information: 
+<utterance>
+How many car models are produced by each maker? List the count and the maker full name.
+<db_table_names>
+continents|countries|car_makers|model_list|car_names|cars_data
+<db_column_names>
+*|ContId|Continent|CountryId|CountryName|Continent|Id|Maker|FullName|Country|ModelId|Maker|Model|MakeId|Model|Make|Id|MPG|Cylinders|Edispl|Horsepower|Weight|Accelerate|Year
+<db_column_type>
+text|number|text|number|text|number|number|text|text|text|number|number|text|number|text|text|number|text|number|number|text|number|number|number
+<primary_key>
+1|3|6|10|13|16
+<foreign_key>
+5|9|11|14|16
+
+=>
+ SELECT COUNT(ModelId) AS Count, FullName FROM car_makers INNER JOIN model_list ON car_makers.Id = model_list.Maker GROUP BY FullName;
+SELECT Count ( * )  ,  T2.FullName ,  T2.id FROM MODEL_LIST AS T1 JOIN CAR_MAKERS AS T2 ON T1.Maker   =   T2.Id GROUP BY T2.id having count ( * )   > =  3
+dart
+============================
+<request>
+Generate natural language text from the given RDF triplets: 	
+<RDF_Triplets>
+Queens University of Charlotte | NICKNAME | Royals
+Queens University of Charlotte | ENROLLMENT | 2386
+
+=>
+ Queens University of Charlotte, also known as the Royals, has an enrollment of 2386.
+The nickname of the school with an enrollment of 2,386 is the royals.
+feverous
+============================
+<request>
+Verified the claim with the evidence in the forms of sentences and cells from tables, the answer should be 0 if refutes, or 1 if supports
+<statement>
+In John Laurie's partial television credits, he was part of the Bees on the Boat-Deck in 1939 and Jackanory in 1971.
+<context>
+
+<table>
+Year|Title|Role|Notes
+1938|The Duchess Of Malfi|Ferdinand of Aragon|Single drama
+The Last Voyage of Captain Grant|Captain Grant|Single drama
+Mary Rose|Cameron|Single drama
+1939|Bees on the Boat-Deck|Gaster|Single drama
+1952|The Three Hostages|Insp. MacGillivray|Four episodes
+1961-1963|Tales of Mystery|Host / Algernon Blackwood|29 episodes
+1962-1969|The Avengers||
+1963|Steptoe and Son|The Vet|Episode "Wallah, Wallah Catsmeat"
+1965|Z Cars|Dr Ferguson|Episode "Partners"
+Emergency-Ward 10|Professor Corliss|Six episodes
+1968-1977|Dad's Army|Private Frazer|80 episodes, recurring role
+1970|From a Bird's Eye View|Lord McBracken|One episode alongside Dads Army co-star Clive Dunn
+1971|Jackanory|Storyteller|Five episodes reading The Princess and the Goblin
+1973|Jackanory|Storyteller|Five episodes reading The Princess and Curdie
+1975|Jackanory|Storyteller|Five episodes reading stories 'The Light Princess' and 'The Golden Key'
+	
+
+
+=>
+ 1
+1
+gittables
+============================
+<request>
+Please annotate table column with entity name from DBpedia and Schema.org Ontologies: 
+<column>
+256.0| 5.0| 256.0| 5.0| 128.0| 128.0| 59.94038190332165| 90.0| nan| nan| nan
+=>
+
+
+No entity name can be associated with this column.
+length
+hybridqa
+============================
+<request>
+Aggregate both tabular information and text information to answer the question (Do not repeat the question, and shorten the answers as much as possible): 
+<question>
+What is that address of the museum located in a Victorian House in an area whose Architectural styles within the district include Craftsman Bungalow , Queen Anne , Stick style , Folk Victorian , Colonial Revival , American Foursquare and Neoclassical Revival ?
+<context>
+List of museums in Atlanta | Museums | Main article : List of museums in Georgia ( U.S. state ) | This list of museums in Atlanta is a list of museums, defined for this context as institutions (including nonprofit organizations, government entities, and private businesses) that collect and care for objects of cultural, artistic, scientific, or historical interest and make their collections or related exhibits available for public viewing. Also included are non-profit and university art galleries. Museums that exist only in cyberspace (i.e., virtual museums) are not included. This list includes museums in the City of Atlanta and the immediately adjacent communities of Druid Hills, and Hapeville at Atlanta's airport. For museums in the rest of Metro Atlanta and the rest of the state of Georgia, see List of museums in Georgia (U.S. state).
+<passage>
+passages: Hammonds House Museum: The Hammonds House Museum is a museum for African American fine art , located at 503 Peeples Street SW in the West End neighborhood of Atlanta , Georgia . | 
+<table>
+Name|Area|Type
+APEX Museum|Sweet Auburn|African American
+Atlanta Contemporary Art Center|West Midtown|Art
+Atlanta History Center|Buckhead|History
+Atlanta Monetary Museum|Midtown Atlanta|Numismatic
+Booth Western Art Museum|Cartersville|Art
+The Breman Museum|Midtown Atlanta|Jewish
+Callanwolde Fine Arts Center|Druid Hills|Art
+Center for Puppetry Arts|Midtown Atlanta|Puppetry
+Children 's Museum of Atlanta|Luckie Marietta|Children 's
+Clark Atlanta University Art Museum|West End|Art
+College Football Hall of Fame|Luckie Marietta|Sports
+David J. Sencer CDC Museum|Druid Hills|Medical
+Delta Flight Museum|Hapeville|Aviation
+Dignity Museum|College Park|Homelessness
+Fernbank Museum of Natural History|Druid Hills|Natural history
+Fernbank Science Center|Druid Hills|Science
+Ferst Center for the Arts|Midtown Atlanta|Art
+Georgia Capitol Museum|South Downtown|History
+Georgia Governor 's Mansion|Buckhead|Historic house
+Hammonds House Museum|West End|African American
+
+=>
+Hammonds House Museum, 503 Peeples St SW, West End, Atlanta, GA.
+503 Peeples Street SW
+logic2text
+============================
+<request>
+Generate natural language description based on the logic_form and the tabular information: 
+<logic_form>
+eq { hop { nth_argmax { all_rows ; gold ; 2 } ; nation } ; argentina ( arg ) } = true
+<caption>
+athletics at the 1951 pan american games
+<table>
+rank|nation|gold|silver|bronze|total
+1|united states ( usa )|16|13|6|35
+2|argentina ( arg )|7|8|12|26
+3|chile ( chi )|3|6|3|12
+4|cuba ( cub )|2|1|1|4
+5|brazil ( bra )|1|3|5|9
+6|peru ( per )|1|2|0|3
+7|mexico ( mex )|1|0|1|3
+8|colombia ( col )|1|0|0|1
+8|ecuador ( ecu )|1|0|0|1
+10|jamaica ( jam )|0|0|3|3
+11|guatemala ( gua )|0|0|2|2
+
+=>
+ Argentina (Arg) was the second highest ranked nation at the 1951 Pan American Games, with 7 gold medals.
+argentina ( arg ) recorded the 2nd highest number of gold in athletics at the 1951 pan american games .
+multi_woz_dia
+============================
+<request>
+Predict each dialog utterance's intent (one by one) (return short answers): 
+<dialogue>
+User: I'm looking for a place to go in the west of town.
+System: Do you have a specific place in mind that you will like to visit?
+User: A college I think would be best.
+System: There are five colleges in that area that you can visit. Three of them are free to visit and two have a small entrance fee. What is your preference as far as that goes?
+User: can i get the college's phone number. i am also looking for a train to birmingham new street and should depart from cambridge looking for a train
+System: The phone for Churchill College is 01223336233. As far as the train goes, what day and time would you like to travel?
+User: I would like to leave on Sunday and arrive by 17:15.
+System: Okay, I have a train leaving at 14:01 and arriving by 16:44. Would you like me to book it for you?
+User: No, but could you please show me the specific travel time?
+System: The travel duration is 163 minutes, is there anything else I can do for you?
+User: No, that is all. Thank you! Goodbye!
+System: Okay. Thank you for choosing help desk.
+=>
+ Intent: Request for specific travel time.
+Attraction-Inform	
+Attraction-Request	
+Attraction-Inform	
+Attraction-Inform&Attraction-Request	
+Attraction-Request&Train-Inform	
+Attraction-Inform&Train-Request	
+Train-Inform	
+Train-Inform&Train-OfferBook	
+Train-Request	
+Train-Inform&general-reqmore	
+general-bye	
+general-bye&general-welcome
+multi_woz_intent
+============================
+<request>
+Predict overall conversation's intent from the user side (return short answers): 
+<dialogue>
+User: I'm looking for a place to go in the west of town.
+System: Do you have a specific place in mind that you will like to visit?
+User: A college I think would be best.
+System: There are five colleges in that area that you can visit. Three of them are free to visit and two have a small entrance fee. What is your preference as far as that goes?
+User: can i get the college's phone number. i am also looking for a train to birmingham new street and should depart from cambridge looking for a train
+System: The phone for Churchill College is 01223336233. As far as the train goes, what day and time would you like to travel?
+User: I would like to leave on Sunday and arrive by 17:15.
+System: Okay, I have a train leaving at 14:01 and arriving by 16:44. Would you like me to book it for you?
+User: No, but could you please show me the specific travel time?
+System: The travel duration is 163 minutes, is there anything else I can do for you?
+User: No, that is all. Thank you! Goodbye!
+System: Okay. Thank you for choosing help desk.
+=>
+ Polite goodbye.
+find_attraction	
+find_train
+spider
+============================
+<request>
+Generate SQL from the given natural language question: 
+<question>
+What are the names, countries, and ages for every singer in descending order of age?
+<database>
+stadium|singer|concert|singer_in_concert
+*|text
+Stadium_ID|number
+Location|text
+Name|text
+Capacity|number
+Highest|number
+Lowest|number
+Average|number
+Singer_ID|number
+Name|text
+Country|text
+Song_Name|text
+Song_release_year|text
+Age|number
+Is_male|others
+concert_ID|number
+concert_Name|text
+Theme|text
+Stadium_ID|text
+Year|text
+concert_ID|number
+Singer_ID|text	
+
+
+=>
+ SELECT Name, Country, Age FROM singer ORDER BY Age DESC;
+SELECT name ,  country ,  age FROM singer ORDER BY age DESC
+sqa
+============================
+<request>
+Answer the question with the tabular information: 
+<question>
+who were the captains in the ons 5 convoy?
+<table>
+Date|Number|Type|Captain|Casualties|Sunk by
+4 May 1943|U-209|VIIC|Heinrich Brodda|46|Catalina Flying-boat of No. 5 Squadron RCAF
+5 May 1943|U-638|VIIC|Oskar Staudinger|44|HMS Sunflower
+5 May 1943|U-531|IXC/40|Herbert Neckel|54|HMS Vidette
+6 May 1943|U-192|IXC/40|Werner Happe|55|HMS Loosestrife
+6 May 1943|U-125|IXC|Ulrich Folkers|54|HMS Oribi, HMS Snowflake
+6 May 1943|U-630|VIIC|Werner Winkler|47|HMS Vidette
+6 May 1943|U-438|VIIC|Heinrich Hensohn|48|HMS Pelican
+
+=>
+ Heinrich Brodda, Oskar Staudinger, Herbert Neckel, Werner Happe, Ulrich Folkers, Werner Winkler, and Heinrich Hensohn were the captains in the ONS 5 convoy.
+Heinrich Brodda|Oskar Staudinger|Herbert Neckel|Werner Happe|Ulrich Folkers|Werner Winkler|Heinrich Hensohn
+sql2text
+============================
+<Request>
+Convert the given SQL to natural language query
+<SQL>
+SELECT T1.fname FROM student AS T1 JOIN lives_in AS T2 ON T1.stuid  =  T2.stuid JOIN dorm AS T3 ON T3.dormid  =  T2.dormid WHERE T3.dorm_name  =  'Smith Hall'
+=>
+
+What are the first names of the students who live in Smith Hall?
+Find the first name of students who are living in the Smith Hall.
+tabfact
+============================
+<request>
+Verify the statement against the seen tables, output 1 when it's entailed, 0 when it's refuted
+<table>
+<caption>
+turkish cup
+<cells>
+round|clubs remaining|clubs involved|winners from previous round|new entries this round|leagues entering at this round
+first round|156|86|none|86|tff third league & turkish regional amateur league
+second round|113|108|43|65|süper lig & tff first league & tff second league
+third round|59|54|54|none|none
+fourth round|32|32|27|5|süper lig
+fifth round|16|16|16|none|none
+group stage|8|8|8|none|none
+semi - finals|4|4|4|none|none
+final|2|2|2|none|none
+
+=>
+ 0
+1
+totto
+============================
+Generate natural language description for each highlighted part of the table: 	
+
+<Page>
+List of rulers of Brittany
+<Table>
+House of Montfort
+<Cells>
+Name|Portrait|Birth|Marriages|Death|
+
+John IV the Conqueror (Yann IV) 1364-1399 (Previously John V in pretentious succession from his father.)|-|c. 1339 only son of John of Montfort and Joanna of Flanders|(1) Mary Plantagenet of England Woodstock Palace, Woodstock, Oxfordshire summer of 1361 no issues (2) Joan Holland London May 1366 no issues (3) Joan of Navarre Saillé-près-Guérande 2 October 1386 nine children|1/2 November 1399 Nantes aged 59–60|
+John V the Wise (Yann V ar Fur) 1399–1442|-|24 December 1389 Château de l'Hermine, Vannes, Morbihan eldest son of John IV and Joan of Navarre|Joan of France Hôtel de Saint-Pol, Paris 19 September 1396 seven children|29 August 1442 Manoir de La Touche, Nantes aged 52|
+Francis I the Well-Loved (Frañsez Iañ) 1442–1450|-|11 May 1414 Vannes eldest son of John V and Joan of France|(1) Yolande of Anjou Amboise 20 August 1431 one son (2) Isabella of Scotland Château d'Auray 30 October 1442 two daughter|17 July 1450 Château de l'Hermine, Vannes, Morbihan aged 36|
+Peter II the Simple (Pêr II) 1450–1457|-|7 July 1418 Nantes second son of John V and Joan of France|Françoise d'Amboise c. 1442 no issues|22 September 1457 Nantes aged 41|
+Arthur III the Justicier (Arzhur III) 1457–1458|-|24 August 1393 Château de Suscinio, Vannes second son of John IV and Joan of Navarre|(1) Margaret of Burgundy Dijon 10 October 1423 no issues (2) Jeanne d'Albret Nérac 29 August 1442 no issues (3) Catherine of Saint Pol 2 July 1445 no issues|26 December 1458 Nantes aged 65|
+Francis II (Frañsez II) 1458–1488|-|23 June 1433 Château de Clisson eldest son of Richard de Dreux, Count of Étampes and Marguerite d'Orléans, Countess of Vertus|(1) Marguerite of Brittany Château de l'Hermine 16 November 1455 one son (2) Marguerite of Foix Château de Clisson 27 June 1474 two daughters|9 September 1488 Couëron aged 55|
+Anne (Anna) 1488–1514|-|25 January 1477 Château de Nantes eldest daughter of Francis II and Margaret of Foix|(1) Maximilian I, Holy Roman Emperor (by proxy) Rennes Cathedral 19 December 1490 no issues (2) Charles VIII of France Château de Langeais 19 December 1491 four children (3) Louis XII of France Château de Nantes 8 January 1499 four children|9 January 1514 Château de Blois aged 36|
+<Highlighted>
+[4, 0]: Name|Peter II the Simple (Pêr II) 1450–1457
+[5, 0]: Name|Arthur III the Justicier (Arzhur III) 1457–1458
+[5, 4]: Death|26 December 1458 Nantes aged 65
+
+	
+
+=>
+ Peter II the Simple was the ruler of Brittany from 1450 to 1457. He was born on 7 July 1418 in Nantes and married Françoise d'Amboise around 1442, but had no children. Arthur III the Justicier was the ruler of Brittany from 1457 to 1458. He was born on 24 August 1393 in Château de Suscinio, Vannes and married three times, but had no children. He died on 26 December 1458 in Nantes at the age of 65.
+At the very end of his life, Arthur III became duke of Brittany, succeeding Peter II.
+Arthur III was a duke of Brittany.
+webqsp
+============================
+<request>
+Answer the question using entity id instead of entity name, with the mentioned entity and knowledge graph information: 
+<question>
+what is the current leader of japan?
+<knowledge_graph>
+m.03_3d|location.location.contains|m.04632c9
+m.03_3d|location.location.contains|m.01wjg4
+m.03_3d|location.location.contains|m.04ctkzq
+m.03_3d|location.location.contains|m.02xxdm
+m.03_3d|location.location.contains|m.04cr16n
+m.03_3d|location.location.contains|m.03qn7nv
+m.03_3d|location.location.contains|m.03k_1g
+m.02sm8|people.person.nationality|m.03_3d
+m.02rbq|government.government_office_category.officeholders|m.010rm2hc
+m.03_3d|location.location.contains|m.04f5m4r
+m.03_3d|location.location.contains|m.06zl70_
+m.0kfzb|government.politician.government_positions_held|m.0k39tjs
+m.03_3d|location.location.contains|m.02c493
+m.03_3d|location.location.contains|m.051mkh
+m.010rm2hc|government.government_position_held.office_holder|m.02sm8
+m.03_3d|location.location.contains|m.01vgtg
+m.03_3d|location.location.contains|m.026bm__
+m.03_3d|location.location.contains|m.0cvl7x
+m.03_3d|location.location.contains|m.03gsn7b
+m.03_3d|location.location.contains|m.044z2w
+m.03_3d|location.location.contains|m.01whty
+m.03_3d|location.location.contains|m.03gzn81
+m.03_3d|location.location.contains|m.04f1ztm
+m.03_3d|location.location.contains|m.02z5zb1
+m.03_3d|location.location.contains|m.04q7vlt
+m.03_3d|location.location.contains|m.06m2k7
+m.03_3d|location.location.contains|m.025_781
+m.03_3d|government.governmental_jurisdiction.governing_officials|m.010rm2hc
+m.03_3d|location.location.contains|m.02z6mdm
+m.03_3d|location.location.contains|m.080kd3q
+m.03_3d|location.location.contains|m.051lqk
+m.03_3d|location.location.contains|m.04cxyfw
+m.03_3d|location.location.contains|m.02j0pk
+m.03_3d|location.location.contains|m.09llgg
+m.03_3d|location.location.contains|m.04f44xb
+m.03_3d|government.governmental_jurisdiction.governing_officials|m.0k39tjs
+m.0k39tjs|government.government_position_held.office_holder|m.0kfzb
+m.03_3d|location.location.contains|m.02rcpd0
+m.03_3d|location.location.contains|m.04119rf
+m.03_3d|location.location.contains|m.018txg
+m.010rm2hc|government.government_position_held.basic_title|m.02rbq
+m.03_3d|location.location.contains|m.04m_7c8
+m.03_3d|location.location.contains|m.0dmzbw
+m.03_3d|location.location.contains|m.03qmm67
+m.03_3d|location.location.contains|m.047mzv1
+m.03_3d|location.location.contains|m.05zyl2b
+m.03_3d|location.location.contains|m.03jnn9
+m.03_3d|location.location.contains|m.02plx0
+m.03_3d|location.location.contains|m.03hkvwm
+m.0k39tjs|government.government_position_held.basic_title|m.02rbq
+
+<mentioned_cell>
+Japan | m.03_3d
+
+=>
+ m.0kfzb
+ns:m.0kfzb|Akihito
