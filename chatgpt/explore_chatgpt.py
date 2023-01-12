@@ -23,7 +23,7 @@ def retrieval_ans(prompt):
     return response["message"]
 
 def main():
-    tasks = os.listdir("../../generated")
+    tasks = os.listdir("../generated")
     tasks = list(filter(lambda x: x in TASK, tasks))
     wandb.init(project="LLMs + Structured Data", job_type="eval", entity="dki", group="Prompt_insights", name=f"sample_0_221230_chatgpt")
     prediction_table = wandb.Table(columns=["task", "prompt", "completion", "groundtruth"])

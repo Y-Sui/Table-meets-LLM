@@ -15,7 +15,7 @@ args = parser.parse_args()
 
 def get_task_span():
     task_file, row_index = [], []
-    with open("./all_individual_tasks_20221227_log/all_individual_tasks_20221227.txt", "r") as txt_file:
+    with open("exps/all_individual_tasks_20221227_log/all_individual_tasks_20221227.txt", "r") as txt_file:
         task_spans = txt_file.readlines() # ../generated/dart/heur_7\validation.jsonl, Row: [31076, 33844]
     for i in range(len(task_spans)):
         if args.job == "zero-shot":
@@ -43,7 +43,7 @@ def retrieve_pair(output_dir):
                 generated = obj["choices"][0]["text"]
                 pred.append(generated)
         # load ground_truth
-        with open("./all_individual_tasks_20221227_log/all_individual_tasks_20221227.jsonl", "rb") as f:
+        with open("exps/all_individual_tasks_20221227_log/all_individual_tasks_20221227.jsonl", "rb") as f:
             for line in f.readlines()[row_index[idx]["start"]: row_index[idx]["end"]]:
                 obj = json.loads(line)
                 completion = obj["completion"] # lack labelling here
@@ -213,14 +213,14 @@ def evaluate_individual_task(pair_list):
             results[f"gittables_{pair['split']}"] = bleu
 
     if args.job == "zero-shot":
-        with open("./all_individual_tasks_20221227_log/text003/all_individual_tasks_20221227_evaluation.json", "w") as file:
+        with open("exps/all_individual_tasks_20221227_log/text003/all_individual_tasks_20221227_evaluation.json", "w") as file:
             json_dump = json.dumps(results)
             file.write(json_dump)
     elif args.job == "linear":
         with open("./all_individual_tasks_20221227_log/text003/linear_evaluation.json", "w") as file:
             json_dump = json.dumps(results)
             file.write(json_dump)
-    with open("./all_individual_tasks_20230101_log/all_individual_tasks_20230101_evaluation.json", "w") as file:
+    with open("exps/all_individual_tasks_20230101_log/all_individual_tasks_20230101_evaluation.json", "w") as file:
         json_dump = json.dumps(results)
         file.write(json_dump)
 
@@ -229,7 +229,8 @@ def evaluate_individual_task(pair_list):
     pp.pprint(results)
 
 def main():
-    pair_list = retrieve_pair("./all_individual_tasks_20230101_log/all_individual_tasks_20230101_samples_phase2.0_text003_samples.0.jsonl")
+    pair_list = retrieve_pair(
+        "exps/all_individual_tasks_20230101_log/all_individual_tasks_20230101_samples_phase2.0_text003_samples.0.jsonl")
     evaluate_individual_task(pair_list)
 
 if __name__ == "__main__":

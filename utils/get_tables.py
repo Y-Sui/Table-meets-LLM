@@ -9,6 +9,15 @@ import traceback
 
 EXIST = {"atis", "geo", "advising", "yelp", "restaurants", "imdb", "academic"}
 
+def get_unique_items(iterable):
+    seen = set()
+    result = []
+    for item in iterable:
+        if item not in seen:
+            seen.add(item)
+            result.append(item)
+    return result
+
 def convert_fk_index(data):
     fk_holder = []
     for fk in data["foreign_keys"]:
