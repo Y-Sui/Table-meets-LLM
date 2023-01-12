@@ -435,6 +435,7 @@ def get_arguments():
 
 
 def task_specific_babel_convertor():
+    global unified_dict
     args = get_arguments()
     logging.info(args)
     if args.unified:
@@ -457,7 +458,7 @@ def task_specific_babel_convertor():
                     unified_dict["objective"].append(obj)
                 logging.info(f"Task-{task} Objective-{obj} Split-{split} has been saved..")
                 # save parsed jsonl
-                save_jsonl(obj, args.task, split, content_list)
+                save_jsonl(obj, task, split, content_list)
     save_unified_jsonl(args.unified_file_output, unified_dict)
     logging.info(f"unified version has been saved")
 
