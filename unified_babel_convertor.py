@@ -7,7 +7,7 @@ import sys
 sys.path.insert(0, "utils")
 
 from datasets import load_dataset
-from utils import get_unique_items
+from utils import get_unique_items, load_json, FormLinearize
 from config import DATASETS, get_heuristics, get_requests
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s', datefmt='%m/%d/%Y %H:%M:%S',
@@ -16,7 +16,13 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message
 
 class BabelConvertor:
     def __init__(self):
-        pass
+        self.form_linearizer = None
+        self.prompt_input = None
+        self.split = None
+        self.objective = None
+        self.instruct = None
+        self.data_type = None
+        self.task = None
 
     def set_split_obj(self, task: str, structured_type: str, split: str, objective: str, instruction: str):
         self.prompt_input = []  # refresh when init set_split_obj
@@ -27,16 +33,26 @@ class BabelConvertor:
         self.instruct = instruction
         try:
             self.dataset = load_dataset(f"./scripts/unifiedSKG/{task}.py", ignore_verifications=True)
-        except FileNotFoundError:
+        except:
             if self.task.__contains__("multi"):
                 huggingface_hub = "multi_woz_22"
             elif self.task == "sqa":
                 huggingface_hub = "msr_sqa"
             elif self.task == "dart":
                 huggingface_hub = "dart"
+            elif self.task.__contains__("formlm"):
+                huggingface_hub = "./scripts/formlm_dataset_OOF/dev_selected_data0426.json"
             else:
                 huggingface_hub = ""
-            self.dataset = load_dataset(huggingface_hub, ignore_verifications=True)
+            # load formlm dataset from local
+            if self.task.__contains__("formlm"):
+                validation_data = load_json(huggingface_hub)["data"]
+                self.form_linearizer = FormLinearize()
+                self.dataset = []
+                for data in validation_data:
+                    self.dataset.append(data)
+            else:
+                self.dataset = load_dataset(huggingface_hub, ignore_verifications=True)
         self.flag = 0  # no heuristics generation (zero-shot)
         self.request = get_requests(self.task)
         self.end_prompt = "The answer is \n"
@@ -51,8 +67,50 @@ class BabelConvertor:
                 "logic2text": self.retrieve_logic2text, "sql2text": self.retrieve_sql2text,
                 "multi_woz_dia": self.retrieve_multi_woz_dia, "multi_woz_intent": self.retrieve_multi_woz_intent,
                 "spider": self.retrieve_spider, "totto": self.retrieve_totto, "tabfact": self.retrieve_tabfact,
-                "sqa": self.retrieve_sqa, "webqsp": self.retrieve_webqsp}
+                "sqa": self.retrieve_sqa, "webqsp": self.retrieve_webqsp, "formlm_opt": self.retrieve_formlm_opt_recommend,
+                "formlm_qa": self.retrieve_formlm_qa_recommend, "formlm_block_type": self.retrieve_formlm_block_type_classification}
         return dict[self.task]()
+
+    # def retrieve_formlm(self):
+    #     linearized_form = [] # linearized_form
+    #     for example in self.dataset:
+    #          linearized_form.append(self.form_linearizer.linearize_form(example))
+
+    def retrieve_formlm_opt_recommend(self):
+        """
+        formlm subtasks --> options recommendation
+        """
+        for example in self.dataset:
+            inputs, targets = self.form_linearizer.linearize_form_for_option_recommend(example)
+            for i in range(len(inputs)):
+                content = {"prompt": self.request + inputs[i] + "\n" + self.end_prompt,
+                           "completion": targets[i]}
+                self.prompt_input.append(content)
+        return self.prompt_input
+
+    def retrieve_formlm_qa_recommend(self):
+        """
+        formlm subtask --> question recommendation
+        """
+        for example in self.dataset:
+            inputs, targets = self.form_linearizer.linearize_form_for_question_recommend(example, with_context=True)
+            for i in range(len(inputs)):
+                content = {"prompt": self.request + inputs[i] + "\n" + self.end_prompt,
+                           "completion": targets[i]}
+                self.prompt_input.append(content)
+        return self.prompt_input
+
+    def retrieve_formlm_block_type_classification(self):
+        """
+        formlm subtask --> block type classification
+        """
+        for example in self.dataset:
+            inputs, targets = self.form_linearizer.linearize_form_for_block_type_classification(example, with_context=True)
+            for i in range(len(inputs)):
+                content = {"prompt": self.request + inputs[i] + "\n" + self.end_prompt,
+                           "completion": targets[i]}
+                self.prompt_input.append(content)
+        return self.prompt_input
 
     def retrieve_feverous(self):
         for example in self.dataset[self.split]:
@@ -384,13 +442,27 @@ def save_raw_jsonl(task: str, split_set: str):
             huggingface_hub = "msr_sqa"
         elif task == "dart":
             huggingface_hub = "dart"
+        elif task.__contains__("formlm"):
+            huggingface_hub = "./scripts/formlm_dataset_OOF/dev_selected_data0426.json"
         else:
             huggingface_hub = ""
-        dataset = load_dataset(huggingface_hub, ignore_verifications=True)
+
+        if task.__contains__("formlm"):
+            validation_data = load_json(huggingface_hub)["data"]
+            dataset = []
+            for data in validation_data:
+                dataset.append(data)
+        else:
+            dataset = load_dataset(huggingface_hub, ignore_verifications=True)
+
     os.makedirs(f"./generated/{task}/raw/", exist_ok=True)
     with open(f"./generated/{task}/raw/{split_set}.jsonl", "w") as outfile:
-        for example in dataset[split_set]:
-            outfile.write(json.dumps(example) + "\n")
+        if task.__contains__("formlm") is False:
+            for example in dataset[split_set]:
+                outfile.write(json.dumps(example) + "\n")
+        else:
+            for example in dataset:
+                outfile.write(json.dumps(example) + "\n")
 
 
 def save_jsonl(objective: str, task: str, split_set: str, content_list: list):
@@ -421,7 +493,7 @@ def save_unified_jsonl(output_path: str, unified_dict: dict):
 def get_arguments():
     # Required parameters
     parser = argparse.ArgumentParser()
-    parser.add_argument("--task", default=["cosql"], nargs="+", help="Please specifiy the task name.")
+    parser.add_argument("--task", default=["formlm_opt", "formlm_qa", "formlm_block_type"], nargs="+", help="Please specifiy the task name.")
     # parser.add_argument("--structured_type", default="table", help="Please specify the type of the structured data.", type=str, choices=DATASETS.keys())
     parser.add_argument("--objective", default=["zero"], nargs="+",
                         help="Please specify the parsing objective.")  # choices = ['zero', 'heur_{idx}', 'linear_{idx}']
@@ -459,8 +531,9 @@ def task_specific_babel_convertor():
                 logging.info(f"Task-{task} Objective-{obj} Split-{split} has been saved..")
                 # save parsed jsonl
                 save_jsonl(obj, task, split, content_list)
-    save_unified_jsonl(args.unified_file_output, unified_dict)
-    logging.info(f"unified version has been saved")
+    if args.unified:
+        save_unified_jsonl(args.unified_file_output, unified_dict)
+        logging.info(f"unified version has been saved")
 
 
 def main():

@@ -1,7 +1,7 @@
 DATASETS = {
     "table": ["tabfact", "sqa", "hybridqa", "gittables", "feverous", "totto"],
     "database": ["spider", "cosql", "logic2text", "sql2text"],
-    "form": ["formlm"],
+    "form": ["formlm", "formlm_opt", "formlm_qa", "formlm_block_type"],
     "knowledge_graph": ["webqsp", "dart"] # todo add comwebq
 }
 
@@ -32,6 +32,9 @@ def get_requests(data):
         "sqa": "Answer the question with the tabular information: \n",
         "sql2text": "Convert the given SQL to natural language query: \n",
         "totto": "Generate natural language description for each highlighted part of the table: \n",
-        "webqsp": "Answer the question using entity id instead of entity name, with the mentioned entity and knowledge graph information: \n"
+        "webqsp": "Answer the question using entity id instead of entity name, with the mentioned entity and knowledge graph information: \n",
+        "formlm_opt": "Recommend a set of possible options for the choice block, use | to split the answer, e.g., 'Male|Female' \n",
+        "formlm_qa": "Recommend the title of the given block, only output the title name without explanation \n",
+        "formlm_block_type": "Predict the block type, the answer should come from this list [textfield, choice, rating, likert, time, data, upload, description, section] \n only output the type name without explanation \n",
     }
     return requests_dict[data]
