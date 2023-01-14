@@ -1,7 +1,7 @@
 DATASETS = {
     "table": ["tabfact", "sqa", "hybridqa", "gittables", "feverous", "totto"],
     "database": ["spider", "cosql", "logic2text", "sql2text"],
-    "forms": ["formlm"],
+    "form": ["formlm"],
     "knowledge_graph": ["webqsp", "dart"] # todo add comwebq
 }
 

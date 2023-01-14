@@ -14,7 +14,7 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message
                     level=logging.INFO)
 
 
-class Babel_Convertor:
+class BabelConvertor:
     def __init__(self):
         pass
 
@@ -440,7 +440,7 @@ def task_specific_babel_convertor():
     logging.info(args)
     if args.unified:
         unified_dict = {"content": [], "task": [], "objective": []}
-    babel_convertor = Babel_Convertor()
+    babel_convertor = BabelConvertor()
     for task in args.task:
         for obj in args.objective:
             for split in args.split:
