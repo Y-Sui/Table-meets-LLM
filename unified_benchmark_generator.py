@@ -11,7 +11,7 @@ from config import DATASETS
 sys.path.insert(0, "utils")
 
 from datasets import load_dataset
-from utils import get_unique_items
+from utils import get_unique_items, load_json, FormLinearize
 from config import DATASETS, get_heuristics, get_requests
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s', datefmt='%m/%d/%Y %H:%M:%S',
@@ -21,6 +21,10 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message
 class BabelBenchmarkGenerator:
     def __init__(self):
         self.babel_convertor = BabelConvertor()
+
+
+def get_keys(dict, value):
+    return [k for k, v in dict.items() if value in v]
 
 
 def retrieve_unique_cell_element(lst: list):
@@ -61,12 +65,21 @@ class InputPartitionGenerator(BabelBenchmarkGenerator):
         super(InputPartitionGenerator, self).__init__()
 
 
-def save_jsonl(dataset_name, task, content_list: list):
+def save_table_jsonl(dataset_name, task, content_list: list):
     """
     save as jsonl file
     """
     os.makedirs(f"./generated/benchmark/table/", exist_ok=True)
     with open(f"./generated/benchmark/table/{dataset_name}_{task}.jsonl", "w") as outfile:
+        for content in content_list:
+            outfile.write(json.dumps(content) + "\n")
+
+def save_form_jsonl(dataset_name, task, content_list: list):
+    """
+    save as jsonl file
+    """
+    os.makedirs(f"./generated/benchmark/form/", exist_ok=True)
+    with open(f"./generated/benchmark/form/{dataset_name}_{task}.jsonl", "w") as outfile:
         for content in content_list:
             outfile.write(json.dumps(content) + "\n")
 
@@ -122,11 +135,11 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
 
         # save as jsonl (tabfact)
         logging.info(f"{self.dataset_name} tasks datasets have been generated..")
-        save_jsonl(self.dataset_name, "cell_lookup", self.cell_lookup_pair)
-        save_jsonl(self.dataset_name, "cell_lookup_pos", self.cell_lookup_pos_pair)
-        save_jsonl(self.dataset_name, "row_retrieval", self.row_pair)
-        save_jsonl(self.dataset_name, "column_retrieval", self.column_pair)
-        save_jsonl(self.dataset_name, "scope_detection", self.scope_pair)
+        save_table_jsonl(self.dataset_name, "cell_lookup", self.cell_lookup_pair)
+        save_table_jsonl(self.dataset_name, "cell_lookup_pos", self.cell_lookup_pos_pair)
+        save_table_jsonl(self.dataset_name, "row_retrieval", self.row_pair)
+        save_table_jsonl(self.dataset_name, "column_retrieval", self.column_pair)
+        save_table_jsonl(self.dataset_name, "scope_detection", self.scope_pair)
 
     def retrieval_sqa_info(self):
         for example in self.dataset[self.split]:
@@ -146,11 +159,11 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
 
         # save as jsonl (sqa)
         logging.info(f"{self.dataset_name} tasks datasets have been generated..")
-        save_jsonl(self.dataset_name, "cell_lookup", self.cell_lookup_pair)
-        save_jsonl(self.dataset_name, "cell_lookup_pos", self.cell_lookup_pos_pair)
-        save_jsonl(self.dataset_name, "row_retrieval", self.row_pair)
-        save_jsonl(self.dataset_name, "column_retrieval", self.column_pair)
-        save_jsonl(self.dataset_name, "scope_detection", self.scope_pair)
+        save_table_jsonl(self.dataset_name, "cell_lookup", self.cell_lookup_pair)
+        save_table_jsonl(self.dataset_name, "cell_lookup_pos", self.cell_lookup_pos_pair)
+        save_table_jsonl(self.dataset_name, "row_retrieval", self.row_pair)
+        save_table_jsonl(self.dataset_name, "column_retrieval", self.column_pair)
+        save_table_jsonl(self.dataset_name, "scope_detection", self.scope_pair)
 
     def retrieval_hybridqa_info(self):
         for example in self.dataset[self.split]:
@@ -171,11 +184,11 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
 
         # save as jsonl (hybridqa)
         logging.info(f"{self.dataset_name} tasks datasets have been generated..")
-        save_jsonl(self.dataset_name, "cell_lookup", self.cell_lookup_pair)
-        save_jsonl(self.dataset_name, "cell_lookup_pos", self.cell_lookup_pos_pair)
-        save_jsonl(self.dataset_name, "row_retrieval", self.row_pair)
-        save_jsonl(self.dataset_name, "column_retrieval", self.column_pair)
-        save_jsonl(self.dataset_name, "scope_detection", self.scope_pair)
+        save_table_jsonl(self.dataset_name, "cell_lookup", self.cell_lookup_pair)
+        save_table_jsonl(self.dataset_name, "cell_lookup_pos", self.cell_lookup_pos_pair)
+        save_table_jsonl(self.dataset_name, "row_retrieval", self.row_pair)
+        save_table_jsonl(self.dataset_name, "column_retrieval", self.column_pair)
+        save_table_jsonl(self.dataset_name, "scope_detection", self.scope_pair)
 
     def retrieval_feverous_info(self):
         for example in self.dataset[self.split]:
@@ -196,11 +209,11 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
 
         # save as jsonl (feverous)
         logging.info(f"{self.dataset_name} tasks datasets have been generated..")
-        save_jsonl(self.dataset_name, "cell_lookup", self.cell_lookup_pair)
-        save_jsonl(self.dataset_name, "cell_lookup_pos", self.cell_lookup_pos_pair)
-        save_jsonl(self.dataset_name, "row_retrieval", self.row_pair)
-        save_jsonl(self.dataset_name, "column_retrieval", self.column_pair)
-        save_jsonl(self.dataset_name, "scope_detection", self.scope_pair)
+        save_table_jsonl(self.dataset_name, "cell_lookup", self.cell_lookup_pair)
+        save_table_jsonl(self.dataset_name, "cell_lookup_pos", self.cell_lookup_pos_pair)
+        save_table_jsonl(self.dataset_name, "row_retrieval", self.row_pair)
+        save_table_jsonl(self.dataset_name, "column_retrieval", self.column_pair)
+        save_table_jsonl(self.dataset_name, "scope_detection", self.scope_pair)
 
     def retrieval_totoo_info(self):
         for example in self.dataset[self.split]:
@@ -244,12 +257,12 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
 
         # save as jsonl (totto)
         logging.info(f"{self.dataset_name} tasks datasets have been generated..")
-        save_jsonl(self.dataset_name, "cell_lookup", self.cell_lookup_pair)
-        save_jsonl(self.dataset_name, "cell_lookup_pos", self.cell_lookup_pos_pair)
-        save_jsonl(self.dataset_name, "row_retrieval", self.row_pair)
-        save_jsonl(self.dataset_name, "column_retrieval", self.column_pair)
-        save_jsonl(self.dataset_name, "scope_detection", self.scope_pair)
-        save_jsonl(self.dataset_name, "span_detection", self.column_span_pair)
+        save_table_jsonl(self.dataset_name, "cell_lookup", self.cell_lookup_pair)
+        save_table_jsonl(self.dataset_name, "cell_lookup_pos", self.cell_lookup_pos_pair)
+        save_table_jsonl(self.dataset_name, "row_retrieval", self.row_pair)
+        save_table_jsonl(self.dataset_name, "column_retrieval", self.column_pair)
+        save_table_jsonl(self.dataset_name, "scope_detection", self.scope_pair)
+        save_table_jsonl(self.dataset_name, "span_detection", self.column_span_pair)
 
     def cell_lookup_generation(self, cells, schema_knowledge):
         """
@@ -368,14 +381,76 @@ class TableInputPartitionGenerator(InputPartitionGenerator):
 
 
 class FormDataRetrievalGenerator(DataRetrievalGenerator):
-    def __init__(self):
+    def __init__(self, args):
         super(FormDataRetrievalGenerator, self).__init__()
+        if args.dataset is not None:
+            self.form_datasets_list = args.dataset
+        self.task = None
+        self.request = None
+        self.structured_type = "form"
+        self.instruction = f"You are a brilliant {self.structured_type} executor with the capabilities [retrieve], [input parsing], [metadata inference], [pattern understanding] who can solve every tasks related to {self.structured_type}.\n"
+        self.end_prompt = "The answer is "
+        self.form_linearizer = FormLinearize()
+        for form_dataset in self.form_datasets_list:  # ['formlm']
+            self.babel_convertor.set_split_obj(form_dataset, self.structured_type, self.split, self.objective, self.instruction)
+            self.dataset = self.babel_convertor.dataset
+            self.dataset_name = form_dataset
+            self.block_traversal_pair = []
+            self.block_dependency_pair = []
+            self.retrieve_sample_list()
 
+    def retrieve_sample_list(self):
+        dict = {
+            "formlm": self.retrieve_formlm_info
+        }
+        return dict[self.dataset_name]()
+
+    def retrieve_formlm_info(self):
+        for example in self.dataset:
+            schema_knowledge = self.form_linearizer.linearize_form(example)
+            body = example['body']
+            self.block_dependency_pair.append(self.block_dependency_pair_generation(body, schema_knowledge))
+            self.block_traversal_pair.append(self.block_traversal_pair_generation(body, schema_knowledge))
+
+        # save as jsonl (formlm)
+        logging.info(f"{self.dataset_name} tasks datasets have been generated..")
+        save_form_jsonl(self.dataset_name, "block_dependency", self.block_dependency_pair)
+        save_form_jsonl(self.dataset_name, "block_traversal", self.block_traversal_pair)
+
+    def block_traversal_pair_generation(self, blocks, schema_knowledge):
+        """
+        Retrieve 1st block type, and block title
+        """
+        self.task = "block_traversal"
+        block_traversal_pair = {}
+        index = random.choice(range(len(blocks)))
+        block_title = blocks[index]['title']
+        block_type = blocks[index]['type']
+        self.request = f"Retrieve {index} block's title and type value; use | to split the answer (e.g., Name(Optional) | None), the block index starts from 0 \n"
+        block_traversal_pair["prompt"] = self.instruction + "<request>\n" + self.request + schema_knowledge + self.end_prompt
+        block_traversal_pair["completion"] = block_title + " | " + block_type
+        return block_traversal_pair
+
+    def block_dependency_pair_generation(self, blocks, schema_knowledge):
+        """
+        Detect whether the block "Age Group" is preceded by "Name", if true return 1, else return 0
+        """
+        self.task = "block_dependency"
+        ans_detection_pair = {}
+        idx_1 = random.choice(range(len(blocks)))
+        idx_2 = random.choice(range(len(blocks)))
+        block1 = blocks[idx_1]['title'] # or hard code choose idx 3 block and idx 4 block
+        block2 = blocks[idx_2]['title']
+        self.request = f"detect whether the block '{block1}' appears preceded by '{block2}', if true return 1, else return 0 \n"
+        ans_detection_pair["prompt"] = self.instruction + "<request>\n" + self.request + schema_knowledge + self.end_prompt
+        ans_detection_pair["completion"] = "1" if idx_1 < idx_2 else "0"
+        return ans_detection_pair
 
 def get_arguments():
     # Required parameters
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset", default=["totto", "feverous", "tabfact", "sqa", "hybridqa"], nargs="+", help="Please specifiy the task name.")
+    # parser.add_argument("--dataset", default=["totto", "feverous", "tabfact", "sqa", "hybridqa"], nargs="+", help="Please specifiy the task name.")
+    parser.add_argument("--dataset", default=["formlm"], nargs="+", help="Please specifiy the task name.")
     # parser.add_argument("--structured_type", default="table", help="Please specify the type of the structured data.", type=str, choices=DATASETS.keys())
     parser.add_argument("--objective", default=["zero"], nargs="+", help="Please specify the parsing objective.")  # choices = ['zero', 'heur_{idx}', 'linear_{idx}']
     parser.add_argument("--split", default=["validation"], nargs="+", help="Please specify which split you want to generate/parse.")  # choices = ['train', 'validation', 'test']
@@ -387,7 +462,11 @@ def get_arguments():
 
 def main():
     args = get_arguments()
-    TableDataRetrievalGenerator(args)
+    structured_type = get_keys(DATASETS, args.dataset[0])[0] # retrieve first dataset type
+    if structured_type == "table":
+        TableDataRetrievalGenerator(args)
+    elif structured_type == "form":
+        FormDataRetrievalGenerator(args)
 
 
 if __name__ == "__main__":
