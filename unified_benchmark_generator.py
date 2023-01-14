@@ -39,6 +39,14 @@ def retrieve_unique_row_element(lst: list):
             return row_index, row
 
 
+def retrieve_unique_column_span(lst: list):
+    pair = []
+    for j, cell in enumerate(lst[0]): # only consider the header (field)
+        if cell['is_header'] is True and cell['column_span'] > 1:
+            pair.append((j, cell['value']))
+    return pair if pair != [] else 'None'
+
+
 class DataRetrievalGenerator(BabelBenchmarkGenerator):
     def __init__(self):
         super(DataRetrievalGenerator, self).__init__()
@@ -70,11 +78,6 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
             self.table_datasets_list = args.dataset
         self.task = None
         self.request = None
-        self.cell_lookup_pair = []
-        self.cell_lookup_pos_pair = []
-        self.row_pair = []
-        self.column_pair = []
-        self.scope_pair = []
         self.structured_type = "table"
         self.instruction = f"You are a brilliant {self.structured_type} executor with the capabilities [retrieve], [input parsing], [metadata inference], [pattern understanding] who can solve every tasks related to {self.structured_type}.\n"
         self.end_prompt = "The answer is "
@@ -83,6 +86,12 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
                                                self.instruction)
             self.dataset = self.babel_convertor.dataset
             self.dataset_name = table_dataset
+            self.cell_lookup_pair = []
+            self.cell_lookup_pos_pair = []
+            self.row_pair = []
+            self.column_pair = []
+            self.scope_pair = []
+            self.column_span_pair = []
             self.retrieve_sample_list()
 
     def retrieve_sample_list(self):
@@ -116,7 +125,7 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
         save_jsonl(self.dataset_name, "cell_lookup", self.cell_lookup_pair)
         save_jsonl(self.dataset_name, "cell_lookup_pos", self.cell_lookup_pos_pair)
         save_jsonl(self.dataset_name, "row_retrieval", self.row_pair)
-        save_jsonl(self.dataset_name, "column_retrieveal", self.column_pair)
+        save_jsonl(self.dataset_name, "column_retrieval", self.column_pair)
         save_jsonl(self.dataset_name, "scope_detection", self.scope_pair)
 
     def retrieval_sqa_info(self):
@@ -140,7 +149,7 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
         save_jsonl(self.dataset_name, "cell_lookup", self.cell_lookup_pair)
         save_jsonl(self.dataset_name, "cell_lookup_pos", self.cell_lookup_pos_pair)
         save_jsonl(self.dataset_name, "row_retrieval", self.row_pair)
-        save_jsonl(self.dataset_name, "column_retrieveal", self.column_pair)
+        save_jsonl(self.dataset_name, "column_retrieval", self.column_pair)
         save_jsonl(self.dataset_name, "scope_detection", self.scope_pair)
 
     def retrieval_hybridqa_info(self):
@@ -165,7 +174,7 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
         save_jsonl(self.dataset_name, "cell_lookup", self.cell_lookup_pair)
         save_jsonl(self.dataset_name, "cell_lookup_pos", self.cell_lookup_pos_pair)
         save_jsonl(self.dataset_name, "row_retrieval", self.row_pair)
-        save_jsonl(self.dataset_name, "column_retrieveal", self.column_pair)
+        save_jsonl(self.dataset_name, "column_retrieval", self.column_pair)
         save_jsonl(self.dataset_name, "scope_detection", self.scope_pair)
 
     def retrieval_feverous_info(self):
@@ -190,7 +199,7 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
         save_jsonl(self.dataset_name, "cell_lookup", self.cell_lookup_pair)
         save_jsonl(self.dataset_name, "cell_lookup_pos", self.cell_lookup_pos_pair)
         save_jsonl(self.dataset_name, "row_retrieval", self.row_pair)
-        save_jsonl(self.dataset_name, "column_retrieveal", self.column_pair)
+        save_jsonl(self.dataset_name, "column_retrieval", self.column_pair)
         save_jsonl(self.dataset_name, "scope_detection", self.scope_pair)
 
     def retrieval_totoo_info(self):
@@ -212,7 +221,12 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
                     else:
                         table_info.append(tables[r_idx][c_idx]["value"] + "|")
             parsed_header = list(x.replace("|", "") for x in header_info)
-            parsed_table = list()
+            parsed_table = []
+            for row_idx in range(len(tables)):
+                row_table = []
+                for col_idx in range(len(tables[row_idx])):
+                    row_table.append(tables[row_idx][col_idx]['value'])
+                parsed_table.append(row_table)
             try:
                 for h_idx in highlight_idx:
                     highlight_info.append(
@@ -221,9 +235,21 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
                 for h_idx in highlight_idx:
                     highlight_info.append(str(h_idx) + ": " + "-" + "|" + tables[h_idx[0]][h_idx[1]]["value"] + "\n")
             schema_knowledge = "<header>\n" + "".join(header_info) + "<cells>\n" + "".join(table_info) + self.end_prompt
+            self.cell_lookup_pair.append(self.cell_lookup_generation(parsed_table, schema_knowledge))
+            self.cell_lookup_pos_pair.append(self.cell_lookup_pos_generation(parsed_table, schema_knowledge))
+            self.row_pair.append(self.table_row_retrieval_generation(parsed_table, schema_knowledge))
+            self.column_pair.append(self.table_column_retrieval_generation(parsed_header, schema_knowledge))
+            self.scope_pair.append(self.table_scope_detection_generation(parsed_table, schema_knowledge))
+            self.column_span_pair.append(self.column_span_detection_generation(tables, schema_knowledge))
 
-
-
+        # save as jsonl (totto)
+        logging.info(f"{self.dataset_name} tasks datasets have been generated..")
+        save_jsonl(self.dataset_name, "cell_lookup", self.cell_lookup_pair)
+        save_jsonl(self.dataset_name, "cell_lookup_pos", self.cell_lookup_pos_pair)
+        save_jsonl(self.dataset_name, "row_retrieval", self.row_pair)
+        save_jsonl(self.dataset_name, "column_retrieval", self.column_pair)
+        save_jsonl(self.dataset_name, "scope_detection", self.scope_pair)
+        save_jsonl(self.dataset_name, "span_detection", self.column_span_pair)
 
     def cell_lookup_generation(self, cells, schema_knowledge):
         """
@@ -263,7 +289,7 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
         row_idx, row_value = retrieve_unique_row_element(rows)
         self.request = f"Only list the cell values (separating by |) of the {row_idx} row of following table \n"
         row_retrieve_pair["prompt"] = self.instruction + "<request>\n" + self.request + schema_knowledge
-        row_retrieve_pair["completion"] = "|".join(row_value)
+        row_retrieve_pair["completion"] = " | ".join(row_value)
         return row_retrieve_pair
 
     def table_column_retrieval_generation(self, columns, schema_knowledge):
@@ -304,6 +330,22 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
         Given a natural language question that involves multiple tables, the model should be able to join the relevant tables and retrieve the information needed to answer the question.
         """
 
+    def column_span_detection_generation(self, columns, schema_knowledge):
+        """
+        Retrieve the index of the column which span is over 1. (e.g., 3), the column index starts from 0
+        """
+        self.task = "span_detection"
+        ans_detection_pair = {}
+        # generate span ground_truth
+        column_idx_list = retrieve_unique_column_span(columns)
+        column_idx_parsed = []
+        for i in column_idx_list:
+            column_idx_parsed.append(i[0])
+        self.request = f"list the index of the column which span is over 1. use | to split the answer (e.g., 3|4), the column index starts from 0 \n"
+        ans_detection_pair["prompt"] = self.instruction + "<request>\n" + self.request + schema_knowledge
+        ans_detection_pair["completion"] = " | ".join([str(x) for x in column_idx_parsed])
+        return ans_detection_pair
+
 
 class TableInputPartitionGenerator(InputPartitionGenerator):
     def __init__(self):
@@ -333,15 +375,11 @@ class FormDataRetrievalGenerator(DataRetrievalGenerator):
 def get_arguments():
     # Required parameters
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset", default=["feverous", "tabfact", "sqa", "hybridqa"], nargs="+",
-                        help="Please specifiy the task name.")
+    parser.add_argument("--dataset", default=["totto", "feverous", "tabfact", "sqa", "hybridqa"], nargs="+", help="Please specifiy the task name.")
     # parser.add_argument("--structured_type", default="table", help="Please specify the type of the structured data.", type=str, choices=DATASETS.keys())
-    parser.add_argument("--objective", default=["zero"], nargs="+",
-                        help="Please specify the parsing objective.")  # choices = ['zero', 'heur_{idx}', 'linear_{idx}']
-    parser.add_argument("--split", default=["validation"], nargs="+",
-                        help="Please specify which split you want to generate/parse.")  # choices = ['train', 'validation', 'test']
-    parser.add_argument("--unified", default=False, action="store_true",
-                        help="generate the unified file for babel input")
+    parser.add_argument("--objective", default=["zero"], nargs="+", help="Please specify the parsing objective.")  # choices = ['zero', 'heur_{idx}', 'linear_{idx}']
+    parser.add_argument("--split", default=["validation"], nargs="+", help="Please specify which split you want to generate/parse.")  # choices = ['train', 'validation', 'test']
+    parser.add_argument("--unified", default=False, action="store_true", help="generate the unified file for babel input")
     parser.add_argument("--unified_file_output", default="./exps/downstream_tasks_20230113_log/", type=str)
     args = parser.parse_args()
     return args
