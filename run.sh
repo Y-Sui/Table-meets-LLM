@@ -12,5 +12,11 @@
 #python unified_babel_convertor.py --task webqsp --objective zero --split validation
 #python unified_babel_convertor.py --task gittables --objective zero --split validation
 
-#python unified_babel_convertor.py --task cosql dart tabfact feverous tabfact hybridqa spider totto sql2text logic2text sqa webqsp --objective zero --split validation --unified --unified_file_output ./exps/downstream_tasks_20230113_log/
+# generate form downstream tasks
+python unified_babel_convertor.py --task formlm_opt formlm_qa formlm_block_type --objective zero --split validation --unified --unified_file_output ./exps/downstream_tasks_form_20230115_log/
+
+# generate table/databases downstream tasks
+python unified_babel_convertor.py --task cosql dart tabfact feverous tabfact hybridqa spider totto sql2text logic2text sqa webqsp --objective zero --split validation --unified --unified_file_output ./exps/downstream_tasks_20230113_log/
+
+# generate totto sequencization downstream tasks
 python unified_babel_convertor.py --task totto --objective heur_0 heur_1 heur_2 heur_3 heur_3 heur_4 heur_5 heur_6 heur_7 --split validation --unified --unified_file_output ./exps/prompt_selection_20230113_log/

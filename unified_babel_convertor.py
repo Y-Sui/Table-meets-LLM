@@ -9,6 +9,7 @@ sys.path.insert(0, "utils")
 from datasets import load_dataset
 from utils import get_unique_items, load_json, FormLinearize
 from config import DATASETS, get_heuristics, get_requests
+from transformers import GPT2TokenizerFast
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s', datefmt='%m/%d/%Y %H:%M:%S',
                     level=logging.INFO)
@@ -23,6 +24,14 @@ class BabelConvertor:
         self.instruct = None
         self.data_type = None
         self.task = None
+        self.tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
+
+    def fit_heuristics_constraints(self, sequence):
+        tokenized_sequence = self.tokenizer(sequence).input_ids
+        if len(tokenized_sequence) < 2048: # the max seq_length of GPT-3
+            return True
+        else:
+            return False
 
     def set_split_obj(self, task: str, structured_type: str, split: str, objective: str, instruction: str):
         self.prompt_input = []  # refresh when init set_split_obj
@@ -85,6 +94,8 @@ class BabelConvertor:
             for i in range(len(inputs)):
                 content = {"prompt": self.request + inputs[i] + "\n" + self.end_prompt,
                            "completion": targets[i]}
+                if self.fit_heuristics_constraints("".join(content.values())) is False:
+                    continue
                 self.prompt_input.append(content)
         return self.prompt_input
 
@@ -97,6 +108,8 @@ class BabelConvertor:
             for i in range(len(inputs)):
                 content = {"prompt": self.request + inputs[i] + "\n" + self.end_prompt,
                            "completion": targets[i]}
+                if self.fit_heuristics_constraints("".join(content.values())) is False:
+                    continue
                 self.prompt_input.append(content)
         return self.prompt_input
 
@@ -109,6 +122,8 @@ class BabelConvertor:
             for i in range(len(inputs)):
                 content = {"prompt": self.request + inputs[i] + "\n" + self.end_prompt,
                            "completion": targets[i]}
+                if self.fit_heuristics_constraints("".join(content.values())) is False:
+                    continue
                 self.prompt_input.append(content)
         return self.prompt_input
 
@@ -125,9 +140,10 @@ class BabelConvertor:
                 cells.append("|".join(example["table"]["rows"][0][i]) + "\n")
             cells = "".join(cells) + "\n"
             table_info = header + cells
-            content[
-                "prompt"] = self.instruct + "<request>\n" + self.request + "<statement>\n" + statement + "<context>\n" + context + "<table>\n" + table_info + self.end_prompt
+            content["prompt"] = self.instruct + "<request>\n" + self.request + "<statement>\n" + statement + "<context>\n" + context + "<table>\n" + table_info + self.end_prompt
             content["completion"] = "0" if label == "REFUTES" else "1"
+            if self.fit_heuristics_constraints("".join(content.values())) is False:
+                continue
             self.prompt_input.append(content)
         return self.prompt_input
 
@@ -143,9 +159,10 @@ class BabelConvertor:
                 input_seq.append(input[i][0] + " | " + input[i][1] + " | " + input[i][2] + "\n")
             input_seq = "".join(input_seq) + "\n"
             label = example["annotations"]["text"][0]
-            content[
-                "prompt"] = self.instruct + "<request>\n" + self.request + "<RDF_Triplets>\n" + input_seq + self.end_prompt
+            content["prompt"] = self.instruct + "<request>\n" + self.request + "<RDF_Triplets>\n" + input_seq + self.end_prompt
             content["completion"] = label
+            if self.fit_heuristics_constraints("".join(content.values())) is False:
+                continue
             self.prompt_input.append(content)
         return self.prompt_input
 
@@ -164,9 +181,10 @@ class BabelConvertor:
             db_foreign_keys = "<foreign_key>\n" + "|".join(
                 list(map(lambda x: str(x), example["db_foreign_keys"]["column_id"]))) + "\n"
             db_info = db_table_names + db_column_names + db_primary_keys + db_foreign_keys
-            content[
-                "prompt"] = self.instruct + "<request>\n" + self.request + "<utterance>\n" + utterance + db_info + self.end_prompt
+            content["prompt"] = self.instruct + "<request>\n" + self.request + "<utterance>\n" + utterance + db_info + self.end_prompt
             content["completion"] = query
+            if self.fit_heuristics_constraints("".join(content.values())) is False:
+                continue
             self.prompt_input.append(content)
         return self.prompt_input
 
@@ -180,9 +198,10 @@ class BabelConvertor:
                 continue
             column_text = column_text.replace("[", "").replace("]", "").replace("'", "").replace(",", "|") + "\n"
             label = example["annotation_label"]
-            content[
-                "prompt"] = self.instruct + "<request>\n" + self.request + "<column>\n" + column_text + self.end_prompt
+            content["prompt"] = self.instruct + "<request>\n" + self.request + "<column>\n" + column_text + self.end_prompt
             content["completion"] = label
+            if self.fit_heuristics_constraints("".join(content.values())) is False:
+                continue
             self.prompt_input.append(content)
         return self.prompt_input
 
@@ -202,9 +221,10 @@ class BabelConvertor:
                 cells.append("|".join(table["rows"][i]) + "\n")
             table_info = header + "".join(cells) + "\n"
             label = example["answer_text"]
-            content[
-                "prompt"] = self.instruct + "<request>\n" + self.request + "<question>\n" + question + "<context>\n" + context + "<passage>\n" + passage + "<table>\n" + table_info + self.end_prompt
+            content["prompt"] = self.instruct + "<request>\n" + self.request + "<question>\n" + question + "<context>\n" + context + "<passage>\n" + passage + "<table>\n" + table_info + self.end_prompt
             content["completion"] = label
+            if self.fit_heuristics_constraints("".join(content.values())) is False:
+                continue
             self.prompt_input.append(content)
         return self.prompt_input
 
@@ -221,9 +241,10 @@ class BabelConvertor:
                 cells.append("|".join(example["table"]["content"][i]) + "\n")
             cells = "".join(cells) + "\n"
             table_info = "<caption>\n" + caption + "<table>\n" + header + cells
-            content[
-                "prompt"] = self.instruct + "<request>\n" + self.request + "<logic_form>\n" + logic_str + table_info + self.end_prompt
+            content["prompt"] = self.instruct + "<request>\n" + self.request + "<logic_form>\n" + logic_str + table_info + self.end_prompt
             content["completion"] = question
+            if self.fit_heuristics_constraints("".join(content.values())) is False:
+                continue
             self.prompt_input.append(content)
         return self.prompt_input
 
@@ -237,6 +258,8 @@ class BabelConvertor:
             label = example["question"]
             content["prompt"] = self.instruct + "<request>\n" + self.request + "<sql>\n" + input + self.end_prompt
             content["completion"] = label
+            if self.fit_heuristics_constraints("".join(content.values())) is False:
+                continue
             self.prompt_input.append(content)
         return self.prompt_input
 
@@ -265,6 +288,8 @@ class BabelConvertor:
             dia_info = "<dialogue>\n" + "\n".join(utterance) + "\n"
             content["prompt"] = self.instruct + "<request>\n" + self.request + dia_info + self.end_prompt
             content["completion"] = "\n".join(dialogue_acts)
+            if self.fit_heuristics_constraints("".join(content.values())) is False:
+                continue
             self.prompt_input.append(content)
         return self.prompt_input
 
@@ -293,6 +318,8 @@ class BabelConvertor:
             dia_info = "<dialogue>\n" + "\n".join(utterance) + "\n"
             content["prompt"] = self.instruct + "<request>\n" + self.request + dia_info + self.end_prompt
             content["completion"] = "\n".join(activate_intents)
+            if self.fit_heuristics_constraints("".join(content.values())) is False:
+                continue
             self.prompt_input.append(content)
         return self.prompt_input
 
@@ -311,10 +338,10 @@ class BabelConvertor:
                 cells.append(db_column_names[i] + "|" + db_column_types[i])
             # content["prompt"] = self.instruct + "<request>\n" + self.request + "<question>\n" + input + "<database>\n" + "|".join(
             #     db_table_names) + "\n".join(cells) + "<primary_keys>\n" + db_primary_keys + "<foreign_keys>\n" + db_foreign_keys + self.end_prompt
-            content[
-                "prompt"] = self.instruct + "<request>\n" + self.request + "<question>\n" + input + "<database>\n" + "|".join(
-                db_table_names) + "\n" + "\n".join(cells) + self.end_prompt
+            content["prompt"] = self.instruct + "<request>\n" + self.request + "<question>\n" + input + "<database>\n" + "|".join(db_table_names) + "\n" + "\n".join(cells) + self.end_prompt
             content["completion"] = label
+            if self.fit_heuristics_constraints("".join(content.values())) is False:
+                continue
             self.prompt_input.append(content)
         return self.prompt_input
 
@@ -332,9 +359,10 @@ class BabelConvertor:
                 cells.append("|".join(table[i]) + "\n")
             cells = "".join(cells)
             tb_info = header + cells + "\n"
-            content[
-                "prompt"] = self.instruct + "<request>\n" + self.request + "<question>\n" + question + "<table>\n" + tb_info + self.end_prompt
+            content["prompt"] = self.instruct + "<request>\n" + self.request + "<question>\n" + question + "<table>\n" + tb_info + self.end_prompt
             content["completion"] = answer
+            if self.fit_heuristics_constraints("".join(content.values())) is False:
+                continue
             self.prompt_input.append(content)
         return self.prompt_input
 
@@ -352,9 +380,10 @@ class BabelConvertor:
                 cells.append("|".join(input["rows"][i]) + "\n")
             table_info = caption + "<cells>\n" + header + "".join(cells) + "\n"
             label = example["label"]
-            content[
-                "prompt"] = self.instruct + "<request>\n" + self.request + "<statement>\n" + statement + "<table>\n" + table_info + self.end_prompt
+            content["prompt"] = self.instruct + "<request>\n" + self.request + "<statement>\n" + statement + "<table>\n" + table_info + self.end_prompt
             content["completion"] = str(label)
+            if self.fit_heuristics_constraints("".join(content.values())) is False:
+                continue
             self.prompt_input.append(content)
         return self.prompt_input
 
@@ -393,6 +422,8 @@ class BabelConvertor:
                 header_info) + "\n" + "".join(table_info) + "\n" + "<Highlighted>\n" + "".join(highlight_info) + "\n"
             content["prompt"] = self.instruct + "<request>\n" + self.request + table_info + self.end_prompt
             content["completion"] = "\n".join(final_questions)
+            if self.fit_heuristics_constraints("".join(content.values())) is False:
+                continue
             self.prompt_input.append(content)
         return self.prompt_input
 
@@ -421,9 +452,10 @@ class BabelConvertor:
                 mentioned_cells.append(" | ".join(entities[i]) + "\n")
             mentioned_cells = "|".join(mentioned_cells) + "\n"
             kg_info = "".join(cells) + "\n"
-            content[
-                "prompt"] = self.instruct + "<request>\n" + self.request + "<question>\n" + question + "<knowledge_graph>\n" + kg_info + "<mentioned_cell>\n" + mentioned_cells + self.end_prompt
+            content["prompt"] = self.instruct + "<request>\n" + self.request + "<question>\n" + question + "<knowledge_graph>\n" + kg_info + "<mentioned_cell>\n" + mentioned_cells + self.end_prompt
             content["completion"] = answer_cell
+            if self.fit_heuristics_constraints("".join(content.values())) is False:
+                continue
             self.prompt_input.append(content)
         return self.prompt_input
 

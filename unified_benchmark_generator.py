@@ -5,6 +5,8 @@ import os
 import sys
 import random
 
+from transformers import GPT2TokenizerFast
+
 from unified_babel_convertor import BabelConvertor
 from config import DATASETS
 
@@ -21,6 +23,14 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message
 class BabelBenchmarkGenerator:
     def __init__(self):
         self.babel_convertor = BabelConvertor()
+        self.tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
+
+    def fit_heuristics_constraints(self, sequence):
+        tokenized_sequence = self.tokenizer(sequence).input_ids
+        if len(tokenized_sequence) < 2048:  # the max seq_length of GPT-3
+            return True
+        else:
+            return False
 
 
 def get_keys(dict, value):
@@ -125,6 +135,8 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
             for i in range(len(input["rows"])):
                 cells.append("|".join(input["rows"][i]) + "\n")
             schema_knowledge = "<header>\n" + header + "<cells>\n" + "".join(cells) + self.end_prompt
+            if self.fit_heuristics_constraints(schema_knowledge) is False:
+                continue
             self.cell_lookup_pair.append(self.cell_lookup_generation(example['table']['rows'], schema_knowledge))
             self.cell_lookup_pos_pair.append(
                 self.cell_lookup_pos_generation(example['table']['rows'], schema_knowledge))
@@ -174,6 +186,8 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
                 table["rows"][i] = table["rows"][i][:-1]
                 cells.append("|".join(table["rows"][i]) + "\n")
             schema_knowledge = "<header>\n" + header + "<cells>\n" + "".join(cells) + self.end_prompt
+            if self.fit_heuristics_constraints(schema_knowledge) is False:
+                continue
             self.cell_lookup_pair.append(self.cell_lookup_generation(example['table']['rows'], schema_knowledge))
             self.cell_lookup_pos_pair.append(
                 self.cell_lookup_pos_generation(example['table']['rows'], schema_knowledge))
@@ -199,6 +213,8 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
                 cells.append(" | ".join(example["table"]["rows"][0][i]) + "\n")
             cells = "".join(cells) + "\n"
             schema_knowledge = "<header>\n" + header + "<cells>\n" + cells + self.end_prompt
+            if self.fit_heuristics_constraints(schema_knowledge) is False:
+                continue
             self.cell_lookup_pair.append(self.cell_lookup_generation(example['table']['rows'][0], schema_knowledge))
             self.cell_lookup_pos_pair.append(
                 self.cell_lookup_pos_generation(example['table']['rows'][0], schema_knowledge))
@@ -248,6 +264,8 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
                 for h_idx in highlight_idx:
                     highlight_info.append(str(h_idx) + ": " + "-" + "|" + tables[h_idx[0]][h_idx[1]]["value"] + "\n")
             schema_knowledge = "<header>\n" + "".join(header_info) + "<cells>\n" + "".join(table_info) + self.end_prompt
+            if self.fit_heuristics_constraints(schema_knowledge) is False:
+                continue
             self.cell_lookup_pair.append(self.cell_lookup_generation(parsed_table, schema_knowledge))
             self.cell_lookup_pos_pair.append(self.cell_lookup_pos_generation(parsed_table, schema_knowledge))
             self.row_pair.append(self.table_row_retrieval_generation(parsed_table, schema_knowledge))
@@ -409,6 +427,8 @@ class FormDataRetrievalGenerator(DataRetrievalGenerator):
         for example in self.dataset:
             schema_knowledge = self.form_linearizer.linearize_form(example)
             body = example['body']
+            if self.fit_heuristics_constraints(schema_knowledge) is False:
+                continue
             self.block_dependency_pair.append(self.block_dependency_pair_generation(body, schema_knowledge))
             self.block_traversal_pair.append(self.block_traversal_pair_generation(body, schema_knowledge))
 
@@ -449,8 +469,8 @@ class FormDataRetrievalGenerator(DataRetrievalGenerator):
 def get_arguments():
     # Required parameters
     parser = argparse.ArgumentParser()
-    # parser.add_argument("--dataset", default=["totto", "feverous", "tabfact", "sqa", "hybridqa"], nargs="+", help="Please specifiy the task name.")
-    parser.add_argument("--dataset", default=["formlm"], nargs="+", help="Please specifiy the task name.")
+    parser.add_argument("--dataset", default=["totto", "feverous", "tabfact", "sqa", "hybridqa"], nargs="+", help="Please specifiy the task name.")
+    # parser.add_argument("--dataset", default=["formlm"], nargs="+", help="Please specifiy the task name.")
     # parser.add_argument("--structured_type", default="table", help="Please specify the type of the structured data.", type=str, choices=DATASETS.keys())
     parser.add_argument("--objective", default=["zero"], nargs="+", help="Please specify the parsing objective.")  # choices = ['zero', 'heur_{idx}', 'linear_{idx}']
     parser.add_argument("--split", default=["validation"], nargs="+", help="Please specify which split you want to generate/parse.")  # choices = ['train', 'validation', 'test']
