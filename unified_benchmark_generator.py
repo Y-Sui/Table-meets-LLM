@@ -16,13 +16,54 @@ from datasets import load_dataset
 from utils import get_unique_items, load_json, FormLinearize
 from config import DATASETS, get_heuristics, get_requests
 
+from tprompt.dte.embedding import DTEEmbedding
+from tprompt.dte.generator import generate_embeddings
+from tprompt.dte.download import download_dte
+from tprompt.dte.retriever import retrieve
+
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s', datefmt='%m/%d/%Y %H:%M:%S',
                     level=logging.INFO)
+
+
+class DteFewShotGenerator:
+    def __init__(self, top_K):
+        model_path = download_dte(use_cached=True)
+        self.dte = DTEEmbedding(os.path.join(model_path, "model.config"))
+        self.train_split = {}
+        self.validation_split = {}
+        self.topK = top_K
+
+    def generate_samples_embedding(self, Q, A):
+        return generate_embeddings(self.dte, Q, A)
+
+    def retrieve_few_shot(self):
+        random_sample_pair = random.sample(list(enumerate(self.train_split["Q"])), k=150)
+        train_split_q, train_split_a = [], []
+        for idx, val in random_sample_pair:
+            train_split_q.append(val)
+            train_split_a.append(self.train_split["A"][idx])
+        training_split_embedding = self.generate_samples_embedding(train_split_q, train_split_a)
+        validation_split_embedding = self.generate_samples_embedding(self.validation_split["Q"], self.validation_split["A"])
+        return retrieve(validation_split_embedding, training_split_embedding, batch_size=16, topK=self.topK, instruct="", prompt_delimiter="input: ", completion_delimiter="output: ")
+
+    def generate_few_shot_examples(self, babel_format_input: list):
+        train_Q, train_A, validation_Q, validation_A = [], [], [], []
+        for line in babel_format_input:
+            train_Q.append(line["prompt"])
+            train_A.append(line["completion"])
+        for line in babel_format_input:
+            validation_Q.append(line["prompt"])
+            validation_A.append(line["completion"])
+        self.train_split = {"Q": train_Q, "A": train_A}
+        self.validation_split = {"Q": validation_Q, "A": validation_A}
+        few_shot_examples = self.retrieve_few_shot()
+        return few_shot_examples
 
 
 class BabelBenchmarkGenerator:
     def __init__(self):
         self.babel_convertor = BabelConvertor()
+        self.dte_few_shot_generator = DteFewShotGenerator(top_K=2)  # 2 few-shot
         self.tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
 
     def fit_heuristics_constraints(self, sequence):
@@ -137,13 +178,19 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
             schema_knowledge = "<header>\n" + header + "<cells>\n" + "".join(cells) + self.end_prompt
             if self.fit_heuristics_constraints(schema_knowledge) is False:
                 continue
+            # zero-shot
             self.cell_lookup_pair.append(self.cell_lookup_generation(example['table']['rows'], schema_knowledge))
-            self.cell_lookup_pos_pair.append(
-                self.cell_lookup_pos_generation(example['table']['rows'], schema_knowledge))
+            self.cell_lookup_pos_pair.append(self.cell_lookup_pos_generation(example['table']['rows'], schema_knowledge))
             self.row_pair.append(self.table_row_retrieval_generation(example['table']['rows'], schema_knowledge))
-            self.column_pair.append(
-                self.table_column_retrieval_generation(example['table']['header'], schema_knowledge))
+            self.column_pair.append(self.table_column_retrieval_generation(example['table']['header'], schema_knowledge))
             self.scope_pair.append(self.table_scope_detection_generation(example["table"]['rows'], schema_knowledge))
+
+        # few-shot
+        self.cell_lookup_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.cell_lookup_pos_pair)
+        self.cell_lookup_pos_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.cell_lookup_pos_pair)
+        self.row_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.row_pair)
+        self.column_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.column_pair)
+        self.scope_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.scope_pair)
 
         # save as jsonl (tabfact)
         logging.info(f"{self.dataset_name} tasks datasets have been generated..")
@@ -168,6 +215,13 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
             self.row_pair.append(self.table_row_retrieval_generation(example['table_data'], schema_knowledge))
             self.column_pair.append(self.table_column_retrieval_generation(example['table_header'], schema_knowledge))
             self.scope_pair.append(self.table_scope_detection_generation(example['table_data'], schema_knowledge))
+
+        # few-shot
+        self.cell_lookup_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.cell_lookup_pos_pair)
+        self.cell_lookup_pos_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.cell_lookup_pos_pair)
+        self.row_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.row_pair)
+        self.column_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.column_pair)
+        self.scope_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.scope_pair)
 
         # save as jsonl (sqa)
         logging.info(f"{self.dataset_name} tasks datasets have been generated..")
@@ -196,6 +250,13 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
                 self.table_column_retrieval_generation(example['table']['header'], schema_knowledge))
             self.scope_pair.append(self.table_scope_detection_generation(example['table']['rows'], schema_knowledge))
 
+        # few-shot
+        self.cell_lookup_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.cell_lookup_pos_pair)
+        self.cell_lookup_pos_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.cell_lookup_pos_pair)
+        self.row_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.row_pair)
+        self.column_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.column_pair)
+        self.scope_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.scope_pair)
+
         # save as jsonl (hybridqa)
         logging.info(f"{self.dataset_name} tasks datasets have been generated..")
         save_table_jsonl(self.dataset_name, "cell_lookup", self.cell_lookup_pair)
@@ -222,6 +283,13 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
             self.column_pair.append(
                 self.table_column_retrieval_generation(example['table']['header'][0], schema_knowledge))
             self.scope_pair.append(self.table_scope_detection_generation(example["table"]['rows'][0], schema_knowledge))
+
+        # few-shot
+        self.cell_lookup_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.cell_lookup_pos_pair)
+        self.cell_lookup_pos_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.cell_lookup_pos_pair)
+        self.row_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.row_pair)
+        self.column_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.column_pair)
+        self.scope_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.scope_pair)
 
         # save as jsonl (feverous)
         logging.info(f"{self.dataset_name} tasks datasets have been generated..")
@@ -272,6 +340,14 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
             self.column_pair.append(self.table_column_retrieval_generation(parsed_header, schema_knowledge))
             self.scope_pair.append(self.table_scope_detection_generation(parsed_table, schema_knowledge))
             self.column_span_pair.append(self.column_span_detection_generation(tables, schema_knowledge))
+
+        # few-shot
+        self.cell_lookup_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.cell_lookup_pos_pair)
+        self.cell_lookup_pos_pair = self.dte_few_shot_generator.generate_few_shot_examples(
+            self.cell_lookup_pos_pair)
+        self.row_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.row_pair)
+        self.column_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.column_pair)
+        self.scope_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.scope_pair)
 
         # save as jsonl (totto)
         logging.info(f"{self.dataset_name} tasks datasets have been generated..")
@@ -431,6 +507,9 @@ class FormDataRetrievalGenerator(DataRetrievalGenerator):
                 continue
             self.block_dependency_pair.append(self.block_dependency_pair_generation(body, schema_knowledge))
             self.block_traversal_pair.append(self.block_traversal_pair_generation(body, schema_knowledge))
+
+        self.block_dependency_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.block_dependency_pair)
+        self.block_traversal_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.block_traversal_pair)
 
         # save as jsonl (formlm)
         logging.info(f"{self.dataset_name} tasks datasets have been generated..")

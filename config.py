@@ -5,6 +5,18 @@ DATASETS = {
     "knowledge_graph": ["webqsp", "dart"] # todo add comwebq
 }
 
+MODELS = {
+    "chatgpt": "chat002",
+    "instruct-davinci-003": "text003",
+    "instruct-davinci-002": "text002",
+    "instruct-davinci-001": "text001",
+}
+
+TASKS = {
+    "table": ["cell_lookup", "cell_lookup_pos", "column_retrieval", "row_retrieval", "scope_detection", "span_detection"],
+    "form": ["block_dependency", "block_traversal"]
+}
+
 def get_heuristics(data_type):
     return {
         "heur_0": f"Generate structural information that will be beneficial for understanding {data_type}: \n",
