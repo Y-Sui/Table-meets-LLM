@@ -30,16 +30,28 @@ def unified_save_jsonl(args):
         split = 0
         with open(f"{path}/unified/unified_{task}.txt", "a", encoding="utf-8") as log_f:
             for file in file_list:
-                if "_".join(file.split("_")[1:]).split(".")[0].__contains__(task):
-                    with open(f"{path}/{file}", "r") as f:
-                        start = split
-                        end = split + len(f.readlines())
-                        span_log = [start, end]
-                        log_f.write(f"{file}, Row: {span_log}\n")
-                        split = end
-                    with open(f"{path}/{file}", "r") as f:
-                        for line in f.readlines():
-                            unified_list.append(json.loads(line))
+                if task == "cell_lookup":
+                    if "_".join(file.split("_")[1:]).split(".")[0].__contains__(task) and "_".join(file.split("_")[1:]).split(".")[0].__contains__("cell_lookup_pos") is False:
+                        with open(f"{path}/{file}", "r") as f:
+                            start = split
+                            end = split + len(f.readlines())
+                            span_log = [start, end]
+                            log_f.write(f"{file}, Row: {span_log}\n")
+                            split = end
+                        with open(f"{path}/{file}", "r") as f:
+                            for line in f.readlines():
+                                unified_list.append(json.loads(line))
+                else:
+                    if "_".join(file.split("_")[1:]).split(".")[0].__contains__(task):
+                        with open(f"{path}/{file}", "r") as f:
+                            start = split
+                            end = split + len(f.readlines())
+                            span_log = [start, end]
+                            log_f.write(f"{file}, Row: {span_log}\n")
+                            split = end
+                        with open(f"{path}/{file}", "r") as f:
+                            for line in f.readlines():
+                                unified_list.append(json.loads(line))
         with open(f"{path}/unified/unified_{task}.jsonl", "w", encoding='utf-8') as out_f:
             for content in unified_list:
                 out_f.write(json.dumps(content) + "\n")

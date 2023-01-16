@@ -14,7 +14,7 @@ class StructuredDataLinearize:
                     "caption": ""
                 }
             }
-        """
+    """
     def __init__(self):
         self.end_prompt = "The answer is "
 

@@ -538,3 +538,75 @@ Bronze|Scotty James|2018 Pyeongchang|Snowboarding
 =>
 
 2019
+You are a brilliant table executor with the capbilities [retrieve], [input parsing], [metadata inference], [pattern understanding] who can understand the structural information of the table.
+<request>
+Aggregate both tabular information and text information to answer the question (Do not repeat the question, and shorten the answers as much as possible): 
+<question>
+What is the middle name of the player with the second most National Football League career rushing yards ?
+<context>
+List of National Football League career rushing yards leaders | Players with at least 10,000 rushing yards | Through end of 2019 season | This is a list of National Football League running backs by total career rushing yards. This list includes all running backs who have rushed for at least 10,000 yards. Emmitt Smith has held the all-time rushing yards record since 2002.
+<passage>
+passages: Emmitt Smith: Smith led the league in rushing and won the Super Bowl in the same year three times ( 1992 , 1993 , and 1995 ) when to that point it had never been done . | Walter Payton: Walter Jerry Payton ( July 25 , 1954 - November 1 , 1999 ) was an American professional football player who was a running back for the Chicago Bears of the National Football League ( NFL ) for thirteen seasons . | San Francisco 49ers: The team began play at Kezar Stadium in San Francisco before moving across town to Candlestick Park in 1970 and then to Levi 's Stadium in Santa Clara in 2014 . The 49ers won five Super Bowl championships between 1981 and 1994 , led by Hall of Famers Joe Montana , Jerry Rice , Ronnie Lott , Steve Young , and coaches Bill Walsh and George Seifert . | Denver Broncos: They have won eight AFC Championships ( 1977 , 1986 , 1987 , 1989 , 1997 , 1998 , 2013 , 2015 ) , and three Super Bowl championships ( 1997 ( XXXII ) , 1998 ( XXXIII ) , 2015 ( 50 ) ) , and share the NFL record for most Super Bowl losses ( 5 - tied with the New England Patriots ) . | 
+<table>
+Rank|Player|Team ( s ) by season|Carries|Yards
+1|Emmitt Smith|Dallas Cowboys ( 1990 - 2002 ) Arizona Cardinals ( 2003 - 2004 )|4,409|18,355
+2|Walter Payton|Chicago Bears ( 1975 - 1987 )|3,838|16,726
+3|Frank Gore|San Francisco 49ers ( 2005 - 2014 ) Indianapolis Colts ( 2015 - 2017 ) Miami Dolphins ( 2018 ) Buffalo Bills ( 2019 -present )|3,548|15,347
+4|Barry Sanders|Detroit Lions ( 1989 - 1998 )|3,062|15,269
+5|Adrian Peterson|Minnesota Vikings ( 2007 - 2016 ) New Orleans Saints ( 2017 ) Arizona Cardinals ( 2017 ) Washington Redskins ( 2018 -present )|3,036|14,216
+6|Curtis Martin|New England Patriots ( 1995 - 1997 ) New York Jets ( 1998 - 2005 )|3,518|14,101
+7|LaDainian Tomlinson|San Diego Chargers ( 2001 - 2009 ) New York Jets ( 2010 - 2011 )|3,174|13,684
+8|Jerome Bettis|St. Louis/L.A . Rams ( 1993 - 1995 ) Pittsburgh Steelers ( 1996 - 2005 )|3,479|13,662
+9|Eric Dickerson|Los Angeles Rams ( 1983 - 1987 ) Indianapolis Colts ( 1987 - 1991 ) Los Angeles Raiders ( 1992 ) Atlanta Falcons ( 1993 )|2,996|13,259
+10|Tony Dorsett|Dallas Cowboys ( 1977 - 1987 ) Denver Broncos ( 1988 )|2,936|12,739
+11|Jim Brown|Cleveland Browns ( 1957 - 1965 )|2,359|12,312
+12|Marshall Faulk|Indianapolis Colts ( 1994 - 1998 ) St. Louis Rams ( 1999 - 2005 )|2,836|12,279
+13|Edgerrin James|Indianapolis Colts ( 1999 - 2005 ) Arizona Cardinals ( 2006 - 2008 ) Seattle Seahawks ( 2009 )|3,028|12,246
+14|Marcus Allen|Los Angeles Raiders ( 1982 - 1992 ) Kansas City Chiefs ( 1993 - 1997 )|3,022|12,243
+15|Franco Harris|Pittsburgh Steelers ( 1972 - 1983 ) Seattle Seahawks ( 1984 )|2,949|12,120
+16|Thurman Thomas|Buffalo Bills ( 1988 - 1999 ) Miami Dolphins ( 2000 )|2,877|12,074
+17|Fred Taylor|Jacksonville Jaguars ( 1998 - 2008 ) New England Patriots ( 2009 - 2010 )|2,534|11,695
+18|Steven Jackson|St. Louis Rams ( 2004 - 2012 ) Atlanta Falcons ( 2013 - 2014 ) New England Patriots ( 2015 )|2,764|11,438
+19|John Riggins|New York Jets ( 1971 - 1975 ) Washington Redskins ( 1976 - 1985 )|2,916|11,352
+20|Corey Dillon|Cincinnati Bengals ( 1997 - 2003 ) New England Patriots ( 2004 - 2006 )|2,618|11,241
+
+The answer is 
+
+
+Jerry
+You are a brilliant table executor with the capbilities [retrieve], [input parsing], [metadata inference], [pattern understanding] who can understand the structural information of the table.
+<request>
+Aggregate both tabular information and text information to answer the question (Do not repeat the question, and shorten the answers as much as possible): 
+<question>
+What was the nickname of the gold medal winner in the men 's heavyweight greco-roman wrestling event of the 1932 Summer Olympics ?
+<context>
+Sweden at the 1932 Summer Olympics | Medalists | The following Swedish athletes won medals at the games . [ 3 ] | Sweden competed at the 1932 Summer Olympics in Los Angeles, United States. 81 competitors, 78 men and 3 women, took part in 51 events in 12 sports.
+<passage>
+passages: Rudolf Svensson: Johan Rudolf Starke Rudolf Svensson ( 27 March 1899 - 4 December 1978 ) was a Swedish wrestler . | 
+<table>
+Medal|Name|Sport
+Gold|Bertil Rönnmark|Shooting
+Gold|Johan Gabriel Oxenstierna|Modern pentathlon
+Gold|Eric Malmberg|Wrestling ( Greco-Roman )
+Gold|Ivar Johansson|Wrestling ( Greco-Roman )
+Gold|Rudolf Svensson|Wrestling ( Greco-Roman )
+Gold|Carl Westergren|Wrestling ( Greco-Roman )
+Gold|Ivar Johansson|Wrestling ( freestyle )
+Gold|Johan Richthoff|Wrestling ( freestyle )
+Gold|Tore Holm Martin Hindorff Olle Åkerlund Åke Bergqvist|Sailing
+Silver|Erik Svensson|Athletics
+Silver|Thure Ahlqvist|Boxing
+Silver|Bo Lindman|Modern pentathlon
+Silver|Thure Sjöstedt|Wrestling ( freestyle )
+Silver|Bertil Sandström Thomas Byström Gustaf Adolf Boltenstern , Jr|Equestrian
+Bronze|Allan Carlsson|Boxing
+Bronze|Axel Cadier|Wrestling ( Greco-Roman )
+Bronze|Einar Karlsson|Wrestling ( freestyle )
+Bronze|Gustaf Klarén|Wrestling ( freestyle )
+Bronze|Gunnar Asther Daniel Sundén-Cullberg|Sailing
+Bronze|Clarence von Rosen , Jr|Equestrian
+
+The answer is 
+
+
+Starke Rudolf
