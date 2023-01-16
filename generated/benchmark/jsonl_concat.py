@@ -13,14 +13,6 @@ def get_arguments():
     parser.add_argument("--task", default=["cell_lookup", "column_retrieval", "row_retrieval", "scope_detection", "cell_lookup_pos", "span_detection"], nargs="+",
                         help="Please specifiy the task name.")
     parser.add_argument("--type", default="table")
-    # parser.add_argument("--structured_type", default="table", help="Please specify the type of the structured data.", type=str, choices=DATASETS.keys())
-    # parser.add_argument("--objective", default=["zero"], nargs="+",
-    #                     help="Please specify the parsing objective.")  # choices = ['zero', 'heur_{idx}', 'linear_{idx}']
-    # parser.add_argument("--split", default=["validation"], nargs="+",
-    #                     help="Please specify which split you want to generate/parse.")  # choices = ['train', 'validation', 'test']
-    # parser.add_argument("--unified", default=False, action="store_true",
-    #                     help="generate the unified file for babel input")
-    # parser.add_argument("--unified_file_output", default="./exps/downstream_tasks_20230113_log/", type=str)
     args = parser.parse_args()
     return args
 
@@ -38,7 +30,7 @@ def unified_save_jsonl(args):
         split = 0
         with open(f"{path}/unified/unified_{task}.txt", "a", encoding="utf-8") as log_f:
             for file in file_list:
-                if "_".join(file.split("_")[1:]).split(".")[0] == task:
+                if "_".join(file.split("_")[1:]).split(".")[0].__contains__(task):
                     with open(f"{path}/{file}", "r") as f:
                         start = split
                         end = split + len(f.readlines())
