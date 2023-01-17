@@ -13,6 +13,7 @@ parser.add_argument("--file_name", type=str, default="atp_20221206_instruction")
 parser.add_argument("--job", type=str, choices=["linear", "zero-shot", "all"], default="all")
 args = parser.parse_args()
 
+
 def get_task_span():
     task_file, row_index = [], []
     with open("exps/all_individual_tasks_20221227_log/all_individual_tasks_20221227.txt", "r") as txt_file:
@@ -28,6 +29,7 @@ def get_task_span():
         row_index_number = task_spans[i].split(": ")[-1].replace("[", "").replace("]", "").replace("\n", "").split(",") # list
         row_index.append({"start": int(row_index_number[0]), "end": int(row_index_number[1])})
     return task_file, row_index
+
 
 def retrieve_pair(output_dir):
     task_file, row_index = get_task_span()

@@ -2,25 +2,68 @@ import argparse
 import json
 import csv
 import os.path
-from config import MODELS, DATASETS, TASKS
+import logging
+
+import numpy as np
+import pandas as pd
+
+from itertools import groupby
+from operator import itemgetter
+
+from config import MODELS, DATASETS, TASKS, LINEARIZE
 from sklearn.metrics import accuracy_score
 
+logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s', datefmt='%m/%d/%Y %H:%M:%S',
+                    level=logging.INFO)
 
 class BenchmarkEvaluator:
-    def __init__(self, args):
+    def __init__(self, args, line=None):
         self.experiment_path = os.path.join("./exps", args.log_file_path)
         self.log_file_path = args.log_file_path
         self.tasks = TASKS[args.task_group] # task list
+        self.linearizes = LINEARIZE
         self.models = args.model
         self.task_group = args.task_group
+        self.modes = {} # modes
         self.exact_matching_score = []
+
+        # dump one sample
+        self.sample = []
+
+        for task in self.tasks:
+            task_mode = []
+            for linearize in self.linearizes:
+                mode_dict = {
+                        "mode": linearize,
+                        "start": [],
+                        "end": []
+                }
+                with open(os.path.join(self.experiment_path, f"{self.task_group}_{task}", f"unified_{task}.txt"), "r") as txt_file:
+                    task_spans = txt_file.readlines()
+                    for line in range(len(task_spans)):
+                        mode = task_spans[line].split(",")[0].replace(f"{task}", "").replace(".jsonl", "").replace(f"{''.join(self.models)}", "")
+                        row_index_number = task_spans[line].split(": ")[-1].replace("[", "").replace("]", "").replace("\n", "").split(",")  # list
+                        if self.task_group == "table":
+                            if mode.__contains__(linearize):
+                                mode_dict["start"].append(int(row_index_number[0]))
+                                mode_dict["end"].append(int(row_index_number[1]))
+                        else:
+                            mode_dict["start"].append(int(row_index_number[0]))
+                            mode_dict["end"].append(int(row_index_number[1]))
+                    task_mode.append(mode_dict)
+            self.modes[task] = task_mode
+        # for task in self.tasks:
         for task in self.tasks:
             for model in self.models:
-                ground_list, predict_list = self.retrieve_pair(task, model)
-                self.exact_matching_score.append(self.exact_match_score(ground_list, predict_list))
+                for mode in self.modes[task]:
+                    ground_list, predict_list = self.retrieve_pair(task, model, mode)
+                    score = self.exact_match_score(ground_list, predict_list)
+                    self.exact_matching_score.append(score)
+                    logging.info(f"{task}_{model}_{mode['mode']}: {score}")
         self.save_scores_to_csv()
+        self.save_sample_x_to_txt()
 
-    def retrieve_pair(self, task_name:str, model_name:str):
+    def retrieve_pair(self, task_name:str, model_name:str, mode:dict):
         ground_truth_list, predict_list = [], []
         log_files = os.listdir(os.path.join(self.experiment_path, f"{self.task_group}_{task_name}"))
         for log_file in log_files:
@@ -30,12 +73,39 @@ class BenchmarkEvaluator:
         ground_truth_path = os.path.join(self.experiment_path, f"{self.task_group}_{task_name}", f"unified_{task_name}.jsonl")
         predict_value_path = os.path.join(self.experiment_path, f"{self.task_group}_{task_name}", target_log_file_path, "output_dataset", f"unified_{task_name}_samples.0.jsonl")
         with open(ground_truth_path, "r") as json_file:
-            for json_line in json_file:
-                ground_truth_list.append(json.loads(json_line)["completion"])
+            for idx in range(len(mode["start"])):
+                for line in json_file.readlines()[mode["start"][idx]: mode["end"][idx]]:
+                    obj = json.loads(line)
+                    # dump one sample
+                    self.sample.append(f"{mode['mode']}\n" + obj["prompt"] + "\n")
+                    ground_truth_list.append(obj["completion"])
         with open(predict_value_path, "r") as json_file:
-            for json_line in json_file:
-                sample = json.loads(json_line)['samples'][0].split(".")[0]
-                predict_list.append(sample)
+            for idx in range(len(mode["start"])):
+                for line in json_file.readlines()[mode["start"][idx]: mode["end"][idx]]:
+                    obj = json.loads(line)
+                    if task_name == "cell_lookup":
+                        predict_list.append(obj['samples'][0].split(".")[0].split("\n")[-1].replace("the answer is: ", ""))
+                    elif task_name == "cell_lookup_pos":
+                        predict_list.append(obj['samples'][0].replace("\n", "").replace("the answer is: ", "").replace("The answer is: ", "").replace("the answer is:", "").replace("The answer is:", ""))
+                    elif task_name == "column_retrieval":
+                        predict_list.append(obj['samples'][0].replace("\nthe answer is:\n", "").replace("\nThe answer is: ", "").replace("\nThe answer is:\n", "").replace("\nthe answer is: ", ""))
+                    elif task_name == "row_retrieval":
+                        predict_list.append(obj['samples'][0].replace("\n", "").replace("The answer is: ", "").replace("The answer is:", "").replace("\nthe answer is: ", ""))
+                    elif task_name == "scope_detection":
+                        predict_list.append(obj['samples'][0].replace("\nthe answer is: ", "").replace("\nthe answer is:\n", "").replace("\nThe answer is:", "").replace("\nThe answer is:\n", "").replace("\n", ""))
+                    elif task_name == "span_detection":
+                        predict_list.append(obj['samples'][0].replace("\nthe answer is: ", "").replace("\nthe answer is:\n", "").replace("\nThe answer is:", "").replace("\nThe answer is:\n", "").replace("\n", "").replace("|", " | "))
+                    elif task_name == "block_dependency":
+                        char_0 = obj['samples'][0].replace("\n", "")[0]
+                        if char_0 == "1" or "0":
+                            predict_list.append(char_0)
+                        elif obj['samples'][0].__contains__("\nAnswer: "):
+                            predict_list.append("".join(obj['samples'][0].split("\nAnswer: ")[1])[0])
+                        else:
+                            predict_list.append("None")
+                    # elif task_name == "block_traversal":
+                    else:
+                        predict_list.append(obj['samples'][0])
         return ground_truth_list, predict_list
 
     def exact_match_score(self, ground_truth, predictions):
@@ -43,21 +113,30 @@ class BenchmarkEvaluator:
 
     def save_scores_to_csv(self):
         os.makedirs(f"./output/evaluation", exist_ok=True)
+        df = pd.DataFrame()
         with open(f"./output/evaluation/{self.log_file_path}_evaluation.csv", "w", newline='') as csv_file:
-            writer = csv.writer(csv_file)
-            writer.writerow([f"task name", "model", "score"])
+            # score_matrix = np.reshape(self.exact_matching_score, (1, len(self.models), len(list(self.modes.values())[0])))
+            score_matrix = np.reshape(self.exact_matching_score, (len(self.tasks), len(self.models), len(list(self.modes.values())[0])))
             for i in range(len(self.tasks)):
                 for j in range(len(self.models)):
-                    if i == 0:
-                        writer.writerow([self.tasks[i], self.models[j], self.exact_matching_score[(i+1)*j]])
-                    else:
-                        writer.writerow([self.tasks[i], self.models[j], self.exact_matching_score[i*j]])
+                    for z in range(len(self.modes[self.tasks[i]])):
+                        new_df = pd.DataFrame({
+                            "task": [self.tasks[i]], "model": [self.models[j]], "mode": [self.modes[self.tasks[i]][z]['mode']], "score": [score_matrix[i, j, z]]
+                        })
+                        df = pd.concat([df, new_df])
+        df.to_csv(f"./output/evaluation/{self.log_file_path}_evaluation.csv", index=False)
+
+    def save_sample_x_to_txt(self):
+        with open(f"./output/evaluation/{self.log_file_path}_sample.txt", 'w', encoding="utf-8") as f:
+            for item in self.sample:
+                f.write(str(item) + '\n')
+
 
 def get_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--task_group", default="table", type=str, help="Please give the task name")
-    parser.add_argument("--log_file_path", default="table_benchmarks_20230114_log", type=str, help="Please indicate the log file path")
-    parser.add_argument("--model", default=["chat002", "text003"], nargs="+", help="Please give the model results you want to evaluate")
+    parser.add_argument("--task_group", default="form", type=str, help="Please give the task name")
+    parser.add_argument("--log_file_path", default="form_benchmarks_20230115_log", type=str, help="Please indicate the log file path")
+    parser.add_argument("--model", default=["text003"], nargs="+", help="Please give the model results you want to evaluate")
     args = parser.parse_args()
     return args
 

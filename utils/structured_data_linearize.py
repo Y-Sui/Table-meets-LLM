@@ -12,7 +12,7 @@ class StructuredDataLinearize:
                     "header": example['table']['header'],
                     "rows": example['table']['rows'],
                     "caption": ""
-                }
+                }5
             }
     """
     def __init__(self):

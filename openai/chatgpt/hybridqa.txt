@@ -610,3 +610,101 @@ The answer is
 
 
 Starke Rudolf
+You are a brilliant table executor with the capbilities [retrieve], [input parsing], [metadata inference], [pattern understanding] who can understand the structural information of the table.
+<request>
+Aggregate both tabular information and text information to answer the question (Do not repeat the question, and shorten the answers as much as possible): 
+<question>
+The driver who finished in position 4 in the 2004 United States Grand Prix was of what nationality ?
+<context>
+2004 United States Grand Prix | Classification -- Qualifying |  | The 2004 United States Grand Prix, officially the XXXIII Foster's United States Grand Prix, was a Formula One motor race held on June 20, 2004 at the Indianapolis Motor Speedway in Indianapolis, Indiana. It was the ninth round of the 2004 Formula One season. Rubens Barrichello started from pole position in his Ferrari ahead of teammate Michael Schumacher. However, following a start-line incident between five cars, four of whom retired as a result, Schumacher overtook Barrichello on the safety car restart on lap six, and despite a threat from Barrichello after the final pit stops, Schumacher held on to take his eighth win of the season. Takuma Sato became only the second Japanese driver to achieve a podium finish. The race saw two serious accidents caused by Michelin tyre failures in what would be a precedent for the 2005 United States Grand Prix, at which all Michelin-shod cars withdrew over safety concerns. First, Fernando Alonso's Renault speared off the track at the end of the pit straight on lap nine. Later, Ralf Schumacher's Williams suffered the same fate, but in the most dangerous part of the track, causing him to hit the wall at a ninety-degree angle rearwards. The impact left Schumacher with spinal fractures and concussion, which prevented him from racing until the 2004 Chinese Grand Prix, three months later.
+<passage>
+passages: Michael Schumacher: In 1995 he repeated the success , this time with a greater margin . In 1996 Schumacher moved to Ferrari , who had last won the Drivers ' Championship in 1979 , and helped them transform into the most successful team in Formula One history , as he came close to winning the 1997 and 1998 titles , before breaking his leg at the 1999 British Grand Prix , ending another title run . | British American Racing: Subsequently , they formed a partnership with Honda which lasted for the next six years . The team was named after British American Tobacco plc ( BAT ) , which owned and sponsored it in order to display its Lucky Strike and 555 brands . | Honda in Formula One: Honda withdrew at the end of 1992 after having achieved their targets . Honda returned again in 2000 , providing engines for British American Racing ( BAR ) . | Jenson Button: He went on to win a record-tying six of the first seven races of the 2009 season , securing the World Drivers ' Championship at the Brazilian Grand Prix , having led on points all season ; his success also helped Brawn GP to secure the World Constructors ' Championship . For 2010 , he moved to McLaren , partnering fellow British racer and former World Champion Lewis Hamilton . | Juan Pablo Montoya: He won the International F3000 championship in 1998 , the CART FedEx Championship Series in 1999 in his debut year in the series , and the IMSA WeatherTech SportsCar Championship in 2019 . His race wins include the Indianapolis 500 ( 2000 , 2015 ) , Grand Prix of Monaco ( 2003 ) , 24 Hours of Daytona ( 2007 , 2008 , 2013 ) , British Grand Prix ( 2005 ) , Italian Grand Prix ( 2001 , 2005 ) , Grand Prix of Long Beach ( 1999 ) , and the Race of Champions ( 2017 ) . | Williams Grand Prix Engineering: Williams started manufacturing its own cars the following year , and Switzerland 's Clay Regazzoni won Williams 's first race at the 1979 British Grand Prix . At the 1997 British Grand Prix , Canadian Jacques Villeneuve scored the team 's 100th race victory , making Williams one of only four teams in Formula One , alongside Ferrari , fellow British team McLaren , and Mercedes to win 100 races . | McLaren: McLaren Racing Limited is a British motor racing team based at the McLaren Technology Centre , Woking , Surrey , England . | Mercedes AMG High Performance Powertrains: Mercedes AMG High Performance Powertrains ( previously known as Ilmor Engineering and Mercedes-Benz High Performance Engines ) is a British Formula One engine manufacturer , owned by Mercedes-Benz . | Mark Webber: During two years with the generally uncompetitive team , Webber qualified on the front two rows of the grid several times and outperformed his teammates . His first F1 win was with Red Bull at the 2009 German Grand Prix , which followed second places at the 2009 Chinese Grand Prix , 2009 Turkish Grand Prix and 2009 British Grand Prix . | Cosworth: Cosworth is a British automotive engineering company founded in London in 1958 ; 62 years ago ( 1958 ) , specialising in high-performance internal combustion engines , powertrain , and electronics ; for automobile racing ( motorsport ) and mainstream automotive industries . | David Coulthard: He was runner-up in the 2001 Formula One World Drivers ' Championship , driving for McLaren . Coulthard began karting at the age of eleven and achieved early success before progressing to car racing in the British Formula Ford Championship and the Formula 3000 series . | 
+<table>
+Pos|No|Driver|Constructor|Time
+1|2|Rubens Barrichello|Ferrari|1:10.223
+2|1|Michael Schumacher|Ferrari|1:10.400
+3|10|Takuma Sato|BAR - Honda|1:10.601
+4|9|Jenson Button|BAR - Honda|1:10.820
+5|3|Juan Pablo Montoya|Williams - BMW|1:11.062
+6|4|Ralf Schumacher|Williams - BMW|1:11.106
+7|6|Kimi Räikkönen|McLaren - Mercedes|1:11.137
+8|17|Olivier Panis|Toyota|1:11.167
+9|8|Fernando Alonso|Renault|1:11.185
+10|14|Mark Webber|Jaguar - Cosworth|1:11.286
+11|16|Cristiano da Matta|Toyota|1:11.691
+12|5|David Coulthard|McLaren - Mercedes|1:12.026
+13|15|Christian Klien|Jaguar - Cosworth|1:12.170
+14|11|Giancarlo Fisichella|Sauber - Petronas|1:12.470
+15|12|Felipe Massa|Sauber - Petronas|1:12.721
+16|18|Nick Heidfeld|Jordan - Ford|1:13.147
+17|19|Giorgio Pantano|Jordan - Ford|1:13.375
+18|20|Gianmaria Bruni|Minardi - Cosworth|1:14.010
+19|21|Zsolt Baumgartner|Minardi - Cosworth|1:14.812
+20|7|Jarno Trulli|Renault|no time
+
+The answer is 
+
+
+British
+You are a brilliant table executor with the capbilities [retrieve], [input parsing], [metadata inference], [pattern understanding] who can understand the structural information of the table.
+<request>
+Aggregate both tabular information and text information to answer the question (Do not repeat the question, and shorten the answers as much as possible): 
+<question>
+What is that address of the museum located in a Victorian House in an area whose Architectural styles within the district include Craftsman Bungalow , Queen Anne , Stick style , Folk Victorian , Colonial Revival , American Foursquare and Neoclassical Revival ?
+<context>
+List of museums in Atlanta | Museums | Main article : List of museums in Georgia ( U.S. state ) | This list of museums in Atlanta is a list of museums, defined for this context as institutions (including nonprofit organizations, government entities, and private businesses) that collect and care for objects of cultural, artistic, scientific, or historical interest and make their collections or related exhibits available for public viewing. Also included are non-profit and university art galleries. Museums that exist only in cyberspace (i.e., virtual museums) are not included. This list includes museums in the City of Atlanta and the immediately adjacent communities of Druid Hills, and Hapeville at Atlanta's airport. For museums in the rest of Metro Atlanta and the rest of the state of Georgia, see List of museums in Georgia (U.S. state).
+<passage>
+passages: Hammonds House Museum: The Hammonds House Museum is a museum for African American fine art , located at 503 Peeples Street SW in the West End neighborhood of Atlanta , Georgia . | 
+<table>
+Name|Area|Type
+APEX Museum|Sweet Auburn|African American
+Atlanta Contemporary Art Center|West Midtown|Art
+Atlanta History Center|Buckhead|History
+Atlanta Monetary Museum|Midtown Atlanta|Numismatic
+Booth Western Art Museum|Cartersville|Art
+The Breman Museum|Midtown Atlanta|Jewish
+Callanwolde Fine Arts Center|Druid Hills|Art
+Center for Puppetry Arts|Midtown Atlanta|Puppetry
+Children 's Museum of Atlanta|Luckie Marietta|Children 's
+Clark Atlanta University Art Museum|West End|Art
+College Football Hall of Fame|Luckie Marietta|Sports
+David J. Sencer CDC Museum|Druid Hills|Medical
+Delta Flight Museum|Hapeville|Aviation
+Dignity Museum|College Park|Homelessness
+Fernbank Museum of Natural History|Druid Hills|Natural history
+Fernbank Science Center|Druid Hills|Science
+Ferst Center for the Arts|Midtown Atlanta|Art
+Georgia Capitol Museum|South Downtown|History
+Georgia Governor 's Mansion|Buckhead|Historic house
+Hammonds House Museum|West End|African American
+
+The answer is 
+
+
+503 Peeples Street SW
+You are a brilliant table executor with the capbilities [retrieve], [input parsing], [metadata inference], [pattern understanding] who can understand the structural information of the table.
+<request>
+Aggregate both tabular information and text information to answer the question (Do not repeat the question, and shorten the answers as much as possible): 
+<question>
+What place was achieved by the person who finished the Berlin marathon in 2:13.32 in 2011 the first time he competed in a marathon ?
+<context>
+2011 Berlin Marathon | Results -- Elite races | The men 's leading group at 24 km , with pacemakers in black and white Elite Men | The 2011 Berlin Marathon was the 38th edition of the annual marathon event and was held on Sunday 25 September on the streets of Berlin, Germany. The men's race was won by Patrick Makau of Kenya in a world record time of 2:03:38 hours. The women's winner was Florence Kiplagat, also from Kenya, won in a time of 2:19:44 hours, which made her the ninth fastest woman of all-time. It was the first marathon she had completed in her career. In total, 32,991 runners managed to finish the 2011 edition of the marathon, comprising 25,577 men and 7414 women.
+<passage>
+passages: Ricardo Serrano (athlete): At the 2011 IAAF World Cross Country Championships he was 89th overall . His marathon debut followed later that year and he was sixth at the 2011 Berlin Marathon with a time of 2:13.32 hours . | Spain: With an area of 505,990 km2 ( 195,360 sq mi ) , Spain is the largest country in Southern Europe , the second largest country in Western Europe and the European Union , and the fourth largest country in the European continent . By population ( about 47 million ) , Spain is the sixth largest in Europe and the fifth in the European Union . | 
+<table>
+Position|Athlete|Nationality
+1|Patrick Makau Musyoki|Kenya
+2|Stephen Kwelio Chemlany|Kenya
+3|Edwin Kimaiyo|Kenya
+4|Felix Limo|Kenya
+5|Scott Overall|United Kingdom
+6|Ricardo Serrano|Spain
+7|Pedro Nimo|Spain
+8|Simon Munyutu|France
+9|Driss El Himer|France
+10|Hendrick Ramaala|South Africa
+
+The answer is 
+
+
+sixth
