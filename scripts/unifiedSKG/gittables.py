@@ -69,7 +69,7 @@ class GitTablesConfig(datasets.BuilderConfig):
 
 class GitTables(datasets.GeneratorBasedBuilder):
     """GitTables benchmark"""
-    DEFAULT_CONFIG_NAME = "dbpedia"  # It's not mandatory to have a default configuration. Just use one if it make sense.
+    DEFAULT_CONFIG_NAME = "schema"  # It's not mandatory to have a default configuration. Just use one if it make sense.
 
     BUILDER_CONFIGS = [
         GitTablesConfig(
