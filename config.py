@@ -1,5 +1,5 @@
 DATASETS = {
-    "table": ["tabfact", "sqa", "hybridqa", "gittables", "feverous", "totto"],
+    "table": ["tabfact", "sqa", "hybridqa", "gittables", "feverous", "totto"], # remove gittables?
     "database": ["spider", "cosql", "logic2text", "sql2text"],
     "form": ["formlm", "formlm_opt", "formlm_qa", "formlm_block_type"],
     "knowledge_graph": ["webqsp", "dart"] # todo add comwebq
