@@ -69,7 +69,7 @@ class GitTablesConfig(datasets.BuilderConfig):
 
 class GitTables(datasets.GeneratorBasedBuilder):
     """GitTables benchmark"""
-    DEFAULT_CONFIG_NAME = "dbpedia"  # It's not mandatory to have a default configuration. Just use one if it make sense.
+    DEFAULT_CONFIG_NAME = "schema"  # It's not mandatory to have a default configuration. Just use one if it make sense.
 
     BUILDER_CONFIGS = [
         GitTablesConfig(
@@ -149,8 +149,6 @@ class GitTables(datasets.GeneratorBasedBuilder):
                 if self.config.name == "dbpedia":
                     table_text = {}
                     if data["table_text"] != None:
-                        print(type(data["table_text"]))
-                        print(data["table_text"])
                         for i in range(35):
                             col_info = data["table_text"].get(f"col{i}", "")
                             if col_info != "":

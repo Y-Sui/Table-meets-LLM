@@ -5,7 +5,11 @@ import jsonlines
 import os
 
 Task = "gittables"
-dataset = load_dataset("./scripts/gittables.py")
+dataset = load_dataset("../unifiedSKG/gittables.py")
+
+# print(dataset)
+# print(dataset["validation"][0])
+
 
 Heuristics = {
     "0": "Give structural information that will be beneficial for understanding: \n",
