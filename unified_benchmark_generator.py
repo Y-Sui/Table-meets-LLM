@@ -521,6 +521,7 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
                     "caption": ""
                 }
             }
+
             try:
                 schema_knowledge = self.linearize.retrieve_linear_function(self.linearize_function, self.use_structure_mark, self.add_grammar, self.change_order, structured_data_dict)
             except:
