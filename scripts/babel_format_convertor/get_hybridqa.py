@@ -6,6 +6,7 @@ import os
 
 Task = "hybridqa"
 dataset = load_dataset('../unifiedSKG/hybridqa.py')
+print(dataset)
 print(dataset["validation"][0])
 
 Heuristics = {

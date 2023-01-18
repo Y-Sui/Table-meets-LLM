@@ -42,7 +42,7 @@ def get_requests(data):
         "cosql": "Generate SQL based on the utterance and database information, \n",
         "dart": "Generate natural language text from the given RDF triplets: \n",
         "feverous": "Verified the claim with the evidence in the forms of sentences and cells from tables, the answer should be 0 if refutes, or 1 if supports: \n",
-        "gittables": "Please annotate table column with entity name from DBpedia and Schema.org Ontologies: \n",
+        "gittables": "Please annotate table column with entity name from the following choices: \n",
         "hybridqa": "Aggregate both tabular information and text information to answer the question (Do not repeat the question, and shorten the answers as much as possible): \n",
         "logic2text": "Generate natural language description based on the logic_form and the tabular information: \n",
         "multi_woz_dia": "Predict each dialog utterance's intent (one by one) (return short answers): \n",

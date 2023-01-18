@@ -5,7 +5,7 @@ import jsonlines
 import os
 
 Task = "spider"
-dataset = load_dataset('./scripts/spider.py', ignore_verifications=True)
+dataset = load_dataset('./scripts/unifiedSKG/spider.py', ignore_verifications=True)
 
 print(dataset)
 print(dataset["validation"][0])
