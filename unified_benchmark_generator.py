@@ -5,6 +5,7 @@ import os
 import sys
 import random
 
+import numpy as np
 from transformers import GPT2TokenizerFast
 from random import sample
 from unified_babel_convertor import BabelConvertor
@@ -105,13 +106,17 @@ def retrieve_unique_column_span(lst: list):
     return pair if pair != [] else 'None'
 
 
+def retrieve_swap_tables(lst: list, start_index: int, end_index: int):
+    lst[:, [start_index, end_index]] = lst[:, [end_index, start_index]]
+    return lst
+
+
 class DataRetrievalGenerator(BabelBenchmarkGenerator):
     def __init__(self):
         super(DataRetrievalGenerator, self).__init__()
         self.table_datasets_list = DATASETS["table"]
         self.form_datasets_list = DATASETS["form"]
         self.split = "validation"
-        self.objective = "zero-shot"  # benchmark setting
 
 
 class InputPartitionGenerator(BabelBenchmarkGenerator):
@@ -147,43 +152,54 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
         self.linearize_list = args.linearize_list
         self.task = None
         self.request = None
-        self.use_few_shot = args.use_few_shot
+        self.objective = args.objective  # ["zero-shot", "1-shot", "few-shot"]
+
         # linearize
-        self.use_structure_mark = args.use_structure_mark # mark as 0
-        self.add_grammar = args.add_grammar # mark as 1
-        self.change_order = args.change_order # mark as 2
+        self.use_partition_mark = args.use_partition_mark  # mark as 0
+        self.use_format_explanation = args.use_format_explanation  # mark as 1
+        self.change_order = args.change_order  # mark as 2
+        self.use_role_prompting = args.use_role_prompting # mark as 3
 
         # random sample
         self.random_samples = 300
 
         self.structured_type = "table"
-        self.instruction = f"You are a brilliant {self.structured_type} executor with the capabilities [retrieve], [input parsing], [metadata inference], [pattern understanding] who can solve every tasks related to {self.structured_type}.\n"
+        self.instruction = f"You are a brilliant {self.structured_type} executor with the capabilities of {self.structured_type} partation, {self.structured_type} parsing, {self.structured_type} table search/retrieval, and table operation/manipulation. You can solve any tasks related to {self.structured_type}.\n"
         self.end_prompt = "The answer is "
-        for table_dataset in self.table_datasets_list:  # ["tabfact", "sqa", "hybridqa", "gittables", "feverous", "totto"]
-            self.babel_convertor.set_split_obj(table_dataset, self.structured_type, self.split, self.objective,
-                                               self.instruction)
-            self.dataset = self.babel_convertor.dataset
-            self.dataset_name = table_dataset
-            self.cell_lookup_pair = []
-            self.cell_lookup_pos_pair = []
-            self.row_pair = []
-            self.column_pair = []
-            self.scope_pair = []
-            self.column_span_pair = []
-            for linearize in self.linearize_list:
-                self.linearize_function = linearize
-                # for save jsonl
-                if self.use_structure_mark and self.add_grammar:
-                    self.mode = f"{self.linearize_function}_0_1"
-                elif self.use_structure_mark:
-                    self.mode = f"{self.linearize_function}_0"
-                elif self.add_grammar:
-                    self.mode = f"{self.linearize_function}_1"
-                elif self.change_order:
-                    self.mode = f"{self.linearize_function}_2"
-                else:
-                    self.mode = f"{self.linearize_function}"
-                self.retrieve_sample_list()
+        for objective in self.objective:  # ["zero-shot", "1-shot", "few-shot"]
+            for table_dataset in self.table_datasets_list:  # ["tabfact", "sqa", "hybridqa", "feverous", "totto"]
+                self.babel_convertor.set_split_obj(table_dataset, self.structured_type, self.split, objective, self.instruction)
+                self.dataset = self.babel_convertor.dataset
+                self.dataset_name = table_dataset
+                self.specific_objective = objective
+                # benchmark tasks
+                self.cell_lookup_pair = []
+                self.cell_lookup_pos_pair = []
+                self.row_pair = []
+                self.column_pair = []
+                self.scope_pair = []
+                self.column_span_pair = []
+                self.table_partition = []
+                self.table_transpose = []
+                self.column_swap = []
+                for linearize in self.linearize_list:
+                    self.linearize_function = linearize
+                    # for saving as jsonl
+                    if self.use_partition_mark and self.use_role_prompting and self.use_format_explanation:
+                        self.mode = f"{self.linearize_function}_0_1_3"
+                    if self.use_partition_mark and self.use_format_explanation:
+                        self.mode = f"{self.linearize_function}_0_1"
+                    elif self.use_role_prompting:
+                        self.mode = f"{self.linearize_function}_3"
+                    elif self.use_partition_mark:
+                        self.mode = f"{self.linearize_function}_0"
+                    elif self.use_format_explanation:
+                        self.mode = f"{self.linearize_function}_1"
+                    elif self.change_order:
+                        self.mode = f"{self.linearize_function}_2"
+                    else:
+                        self.mode = f"{self.linearize_function}"
+                    self.retrieve_sample_list()
 
     def retrieve_sample_list(self):
         dict = {
@@ -196,7 +212,7 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
         return dict[self.dataset_name]()
 
     def retrieve_sample_0(self, dict):
-        return "input:\n" + dict["prompt"] + "\n" + "the answer is:\n" + dict["completion"] + "\n"
+        return "Example_0:\n\n" + dict["prompt"] + "\n" + dict["completion"] + "\n"
 
     def append_sample(self, dict, example):
         dict['prompt'] = example + dict['prompt']
@@ -207,6 +223,7 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
 
     def retrieval_tabfact_info(self):
         for idx, example in enumerate(self.dataset[self.split]):
+
             # input = example["table"]
             # cells = []
             # header = "|".join(input["header"]) + "\n"
@@ -224,40 +241,49 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
                 }
             }
             try:
-                schema_knowledge = self.linearize.retrieve_linear_function(self.linearize_function, self.use_structure_mark, self.add_grammar, self.change_order, structured_data_dict)
+                schema_knowledge = self.linearize.retrieve_linear_function(self.linearize_function, self.use_partition_mark, self.use_format_explanation, self.change_order, structured_data_dict)
             except:
                 continue
-            if idx == 0:
-                cell_lookup_generation_sample_0 = self.retrieve_sample_0(self.cell_lookup_generation(example['table']['rows'], schema_knowledge))
-                cell_lookup_pos_generation_sample_0 = self.retrieve_sample_0(self.cell_lookup_pos_generation(example['table']['rows'], schema_knowledge))
-                row_pair_generation_sample_0 = self.retrieve_sample_0(self.table_row_retrieval_generation(example['table']['rows'], schema_knowledge))
-                column_pair_generation_sample_0 = self.retrieve_sample_0(self.table_column_retrieval_generation(example['table']['header'], schema_knowledge))
-                scope_pair_generation_sample_0 = self.retrieve_sample_0(self.table_scope_detection_generation(example["table"]['rows'], schema_knowledge))
+            if self.specific_objective == "1-shot":
+                if idx == 0:
+                    cell_lookup_generation_sample_0 = self.retrieve_sample_0(self.cell_lookup_generation(example['table']['rows'], schema_knowledge))
+                    cell_lookup_pos_generation_sample_0 = self.retrieve_sample_0(self.cell_lookup_pos_generation(example['table']['rows'], schema_knowledge))
+                    row_pair_generation_sample_0 = self.retrieve_sample_0(self.table_row_retrieval_generation(example['table']['rows'], schema_knowledge))
+                    column_pair_generation_sample_0 = self.retrieve_sample_0(self.table_column_retrieval_generation(example['table']['header'], schema_knowledge))
+                    scope_pair_generation_sample_0 = self.retrieve_sample_0(self.table_scope_detection_generation(example["table"]['rows'], schema_knowledge))
 
-            cell_lookup_generation_sample = self.append_sample(self.cell_lookup_generation(example['table']['rows'], schema_knowledge), cell_lookup_generation_sample_0)
-            cell_lookup_pos_generation_sample = self.append_sample(self.cell_lookup_pos_generation(example['table']['rows'], schema_knowledge), cell_lookup_pos_generation_sample_0)
-            row_pair_generation_sample = self.append_sample(self.table_row_retrieval_generation(example['table']['rows'], schema_knowledge), row_pair_generation_sample_0)
-            column_pair_generation_sample = self.append_sample(self.table_column_retrieval_generation(example['table']['header'], schema_knowledge), column_pair_generation_sample_0)
-            scope_pair_generation_sample = self.append_sample(self.table_scope_detection_generation(example["table"]['rows'], schema_knowledge), scope_pair_generation_sample_0)
+                cell_lookup_generation_sample = self.append_sample(self.cell_lookup_generation(example['table']['rows'], schema_knowledge), cell_lookup_generation_sample_0)
+                cell_lookup_pos_generation_sample = self.append_sample(self.cell_lookup_pos_generation(example['table']['rows'], schema_knowledge), cell_lookup_pos_generation_sample_0)
+                row_pair_generation_sample = self.append_sample(self.table_row_retrieval_generation(example['table']['rows'], schema_knowledge), row_pair_generation_sample_0)
+                column_pair_generation_sample = self.append_sample(self.table_column_retrieval_generation(example['table']['header'], schema_knowledge), column_pair_generation_sample_0)
+                scope_pair_generation_sample = self.append_sample(self.table_scope_detection_generation(example["table"]['rows'], schema_knowledge), scope_pair_generation_sample_0)
 
-            # zero-shot
-            if self.fit_heuristics_constraints(cell_lookup_generation_sample['prompt']) is False:
-                continue
-            self.cell_lookup_pair.append(cell_lookup_generation_sample)
-            if self.fit_heuristics_constraints(cell_lookup_pos_generation_sample['prompt']) is False:
-                continue
-            self.cell_lookup_pos_pair.append(cell_lookup_pos_generation_sample)
-            if self.fit_heuristics_constraints(row_pair_generation_sample['prompt']) is False:
-                continue
-            self.row_pair.append(row_pair_generation_sample)
-            if self.fit_heuristics_constraints(column_pair_generation_sample['prompt']) is False:
-                continue
-            self.column_pair.append(column_pair_generation_sample)
-            if self.fit_heuristics_constraints(scope_pair_generation_sample['prompt']) is False:
-                continue
-            self.scope_pair.append(scope_pair_generation_sample)
+                # 1-shot
+                if self.fit_heuristics_constraints(cell_lookup_generation_sample['prompt']) is False:
+                    continue
+                self.cell_lookup_pair.append(cell_lookup_generation_sample)
+                if self.fit_heuristics_constraints(cell_lookup_pos_generation_sample['prompt']) is False:
+                    continue
+                self.cell_lookup_pos_pair.append(cell_lookup_pos_generation_sample)
+                if self.fit_heuristics_constraints(row_pair_generation_sample['prompt']) is False:
+                    continue
+                self.row_pair.append(row_pair_generation_sample)
+                if self.fit_heuristics_constraints(column_pair_generation_sample['prompt']) is False:
+                    continue
+                self.column_pair.append(column_pair_generation_sample)
+                if self.fit_heuristics_constraints(scope_pair_generation_sample['prompt']) is False:
+                    continue
+                self.scope_pair.append(scope_pair_generation_sample)
 
-        if self.use_few_shot:
+            elif self.specific_objective == "zero-shot":
+                # zero-shot
+                self.cell_lookup_pair.append(self.cell_lookup_generation(example['table']['rows'], schema_knowledge))
+                self.cell_lookup_pos_pair.append(self.cell_lookup_pos_generation(example['table']['rows'], schema_knowledge))
+                self.row_pair.append(self.table_row_retrieval_generation(example['table']['rows'], schema_knowledge))
+                self.column_pair.append(self.table_column_retrieval_generation(example['table']['header'], schema_knowledge))
+                self.scope_pair.append(self.table_scope_detection_generation(example["table"]['rows'], schema_knowledge))
+
+        if self.specific_objective == "few-shot":
             # few-shot
             self.cell_lookup_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.cell_lookup_pos_pair)
             self.cell_lookup_pos_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.cell_lookup_pos_pair)
@@ -266,7 +292,7 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
             self.scope_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.scope_pair)
 
         # save as jsonl (tabfact)
-        logging.info(f"{self.dataset_name} tasks datasets have been generated..")
+        logging.info(f"{self.dataset_name} tasks {self.specific_objective} datasets have been generated..")
         save_table_jsonl(self.dataset_name, "cell_lookup", self.mode, self.random_sampling(self.cell_lookup_pair))
         save_table_jsonl(self.dataset_name, "cell_lookup_pos", self.mode, self.random_sampling(self.cell_lookup_pos_pair))
         save_table_jsonl(self.dataset_name, "row_retrieval", self.mode, self.random_sampling(self.row_pair))
@@ -293,40 +319,49 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
                 }
             }
             try:
-                schema_knowledge = self.linearize.retrieve_linear_function(self.linearize_function, self.use_structure_mark, self.add_grammar, self.change_order, structured_data_dict)
+                schema_knowledge = self.linearize.retrieve_linear_function(self.linearize_function, self.use_partition_mark, self.use_format_explanation, self.change_order, structured_data_dict)
             except:
                 continue
-            if idx == 0:
-                cell_lookup_generation_sample_0 = self.retrieve_sample_0(self.cell_lookup_generation(example['table_data'], schema_knowledge))
-                cell_lookup_pos_generation_sample_0 = self.retrieve_sample_0(self.cell_lookup_pos_generation(example['table_data'], schema_knowledge))
-                row_pair_generation_sample_0 = self.retrieve_sample_0(self.table_row_retrieval_generation(example['table_data'], schema_knowledge))
-                column_pair_generation_sample_0 = self.retrieve_sample_0(self.table_column_retrieval_generation(example['table_header'], schema_knowledge))
-                scope_pair_generation_sample_0 = self.retrieve_sample_0(self.table_scope_detection_generation(example['table_data'], schema_knowledge))
+            if self.specific_objective == "1-shot":
+                if idx == 0:
+                    cell_lookup_generation_sample_0 = self.retrieve_sample_0(self.cell_lookup_generation(example['table_data'], schema_knowledge))
+                    cell_lookup_pos_generation_sample_0 = self.retrieve_sample_0(self.cell_lookup_pos_generation(example['table_data'], schema_knowledge))
+                    row_pair_generation_sample_0 = self.retrieve_sample_0(self.table_row_retrieval_generation(example['table_data'], schema_knowledge))
+                    column_pair_generation_sample_0 = self.retrieve_sample_0(self.table_column_retrieval_generation(example['table_header'], schema_knowledge))
+                    scope_pair_generation_sample_0 = self.retrieve_sample_0(self.table_scope_detection_generation(example['table_data'], schema_knowledge))
 
-            cell_lookup_generation_sample = self.append_sample(self.cell_lookup_generation(example['table_data'], schema_knowledge), cell_lookup_generation_sample_0)
-            cell_lookup_pos_generation_sample = self.append_sample(self.cell_lookup_pos_generation(example['table_data'], schema_knowledge), cell_lookup_pos_generation_sample_0)
-            row_pair_generation_sample = self.append_sample(self.table_row_retrieval_generation(example['table_data'], schema_knowledge), row_pair_generation_sample_0)
-            column_pair_generation_sample = self.append_sample(self.table_column_retrieval_generation(example['table_header'], schema_knowledge), column_pair_generation_sample_0)
-            scope_pair_generation_sample = self.append_sample(self.table_scope_detection_generation(example['table_data'], schema_knowledge), scope_pair_generation_sample_0)
+                cell_lookup_generation_sample = self.append_sample(self.cell_lookup_generation(example['table_data'], schema_knowledge), cell_lookup_generation_sample_0)
+                cell_lookup_pos_generation_sample = self.append_sample(self.cell_lookup_pos_generation(example['table_data'], schema_knowledge), cell_lookup_pos_generation_sample_0)
+                row_pair_generation_sample = self.append_sample(self.table_row_retrieval_generation(example['table_data'], schema_knowledge), row_pair_generation_sample_0)
+                column_pair_generation_sample = self.append_sample(self.table_column_retrieval_generation(example['table_header'], schema_knowledge), column_pair_generation_sample_0)
+                scope_pair_generation_sample = self.append_sample(self.table_scope_detection_generation(example['table_data'], schema_knowledge), scope_pair_generation_sample_0)
 
-            # zero-shot
-            if self.fit_heuristics_constraints(cell_lookup_generation_sample['prompt']) is False:
-                continue
-            self.cell_lookup_pair.append(cell_lookup_generation_sample)
-            if self.fit_heuristics_constraints(cell_lookup_pos_generation_sample['prompt']) is False:
-                continue
-            self.cell_lookup_pos_pair.append(cell_lookup_pos_generation_sample)
-            if self.fit_heuristics_constraints(row_pair_generation_sample['prompt']) is False:
-                continue
-            self.row_pair.append(row_pair_generation_sample)
-            if self.fit_heuristics_constraints(column_pair_generation_sample['prompt']) is False:
-                continue
-            self.column_pair.append(column_pair_generation_sample)
-            if self.fit_heuristics_constraints(scope_pair_generation_sample['prompt']) is False:
-                continue
-            self.scope_pair.append(scope_pair_generation_sample)
+                # 1-shot
+                if self.fit_heuristics_constraints(cell_lookup_generation_sample['prompt']) is False:
+                    continue
+                self.cell_lookup_pair.append(cell_lookup_generation_sample)
+                if self.fit_heuristics_constraints(cell_lookup_pos_generation_sample['prompt']) is False:
+                    continue
+                self.cell_lookup_pos_pair.append(cell_lookup_pos_generation_sample)
+                if self.fit_heuristics_constraints(row_pair_generation_sample['prompt']) is False:
+                    continue
+                self.row_pair.append(row_pair_generation_sample)
+                if self.fit_heuristics_constraints(column_pair_generation_sample['prompt']) is False:
+                    continue
+                self.column_pair.append(column_pair_generation_sample)
+                if self.fit_heuristics_constraints(scope_pair_generation_sample['prompt']) is False:
+                    continue
+                self.scope_pair.append(scope_pair_generation_sample)
 
-        if self.use_few_shot:
+            elif self.specific_objective == "zero-shot":
+                # zero-shot
+                self.cell_lookup_pair.append(self.cell_lookup_generation(example['table']['rows'], schema_knowledge))
+                self.cell_lookup_pos_pair.append(self.cell_lookup_pos_generation(example['table']['rows'], schema_knowledge))
+                self.row_pair.append(self.table_row_retrieval_generation(example['table']['rows'], schema_knowledge))
+                self.column_pair.append(self.table_column_retrieval_generation(example['table']['header'], schema_knowledge))
+                self.scope_pair.append(self.table_scope_detection_generation(example["table"]['rows'], schema_knowledge))
+
+        if self.specific_objective == "few-shot":
             # few-shot
             self.cell_lookup_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.cell_lookup_pos_pair)
             self.cell_lookup_pos_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.cell_lookup_pos_pair)
@@ -335,7 +370,7 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
             self.scope_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.scope_pair)
 
         # save as jsonl (sqa)
-        logging.info(f"{self.dataset_name} tasks datasets have been generated..")
+        logging.info(f"{self.dataset_name} tasks {self.specific_objective} datasets have been generated..")
         save_table_jsonl(self.dataset_name, "cell_lookup", self.mode, self.random_sampling(self.cell_lookup_pair))
         save_table_jsonl(self.dataset_name, "cell_lookup_pos", self.mode, self.random_sampling(self.cell_lookup_pos_pair))
         save_table_jsonl(self.dataset_name, "row_retrieval", self.mode, self.random_sampling(self.row_pair))
@@ -361,40 +396,49 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
                 }
             }
             try:
-                schema_knowledge = self.linearize.retrieve_linear_function(self.linearize_function, self.use_structure_mark, self.add_grammar, self.change_order, structured_data_dict)
+                schema_knowledge = self.linearize.retrieve_linear_function(self.linearize_function, self.use_partition_mark, self.use_format_explanation, self.change_order, structured_data_dict)
             except:
                 continue
-            if idx == 0:
-                cell_lookup_generation_sample_0 = self.retrieve_sample_0(self.cell_lookup_generation(example['table']['rows'], schema_knowledge))
-                cell_lookup_pos_generation_sample_0 = self.retrieve_sample_0(self.cell_lookup_pos_generation(example['table']['rows'], schema_knowledge))
-                row_pair_generation_sample_0 = self.retrieve_sample_0(self.table_row_retrieval_generation(example['table']['rows'], schema_knowledge))
-                column_pair_generation_sample_0 = self.retrieve_sample_0(self.table_column_retrieval_generation(example['table']['header'], schema_knowledge))
-                scope_pair_generation_sample_0 = self.retrieve_sample_0(self.table_scope_detection_generation(example["table"]['rows'], schema_knowledge))
+            if self.specific_objective == "1-shot":
+                if idx == 0:
+                    cell_lookup_generation_sample_0 = self.retrieve_sample_0(self.cell_lookup_generation(example['table']['rows'], schema_knowledge))
+                    cell_lookup_pos_generation_sample_0 = self.retrieve_sample_0(self.cell_lookup_pos_generation(example['table']['rows'], schema_knowledge))
+                    row_pair_generation_sample_0 = self.retrieve_sample_0(self.table_row_retrieval_generation(example['table']['rows'], schema_knowledge))
+                    column_pair_generation_sample_0 = self.retrieve_sample_0(self.table_column_retrieval_generation(example['table']['header'], schema_knowledge))
+                    scope_pair_generation_sample_0 = self.retrieve_sample_0(self.table_scope_detection_generation(example["table"]['rows'], schema_knowledge))
 
-            cell_lookup_generation_sample = self.append_sample(self.cell_lookup_generation(example['table']['rows'], schema_knowledge), cell_lookup_generation_sample_0)
-            cell_lookup_pos_generation_sample = self.append_sample(self.cell_lookup_pos_generation(example['table']['rows'], schema_knowledge), cell_lookup_pos_generation_sample_0)
-            row_pair_generation_sample = self.append_sample(self.table_row_retrieval_generation(example['table']['rows'], schema_knowledge), row_pair_generation_sample_0)
-            column_pair_generation_sample = self.append_sample(self.table_column_retrieval_generation(example['table']['header'], schema_knowledge), column_pair_generation_sample_0)
-            scope_pair_generation_sample = self.append_sample(self.table_scope_detection_generation(example["table"]['rows'], schema_knowledge), scope_pair_generation_sample_0)
+                cell_lookup_generation_sample = self.append_sample(self.cell_lookup_generation(example['table']['rows'], schema_knowledge), cell_lookup_generation_sample_0)
+                cell_lookup_pos_generation_sample = self.append_sample(self.cell_lookup_pos_generation(example['table']['rows'], schema_knowledge), cell_lookup_pos_generation_sample_0)
+                row_pair_generation_sample = self.append_sample(self.table_row_retrieval_generation(example['table']['rows'], schema_knowledge), row_pair_generation_sample_0)
+                column_pair_generation_sample = self.append_sample(self.table_column_retrieval_generation(example['table']['header'], schema_knowledge), column_pair_generation_sample_0)
+                scope_pair_generation_sample = self.append_sample(self.table_scope_detection_generation(example["table"]['rows'], schema_knowledge), scope_pair_generation_sample_0)
 
-            # zero-shot
-            if self.fit_heuristics_constraints(cell_lookup_generation_sample['prompt']) is False:
-                continue
-            self.cell_lookup_pair.append(cell_lookup_generation_sample)
-            if self.fit_heuristics_constraints(cell_lookup_pos_generation_sample['prompt']) is False:
-                continue
-            self.cell_lookup_pos_pair.append(cell_lookup_pos_generation_sample)
-            if self.fit_heuristics_constraints(row_pair_generation_sample['prompt']) is False:
-                continue
-            self.row_pair.append(row_pair_generation_sample)
-            if self.fit_heuristics_constraints(column_pair_generation_sample['prompt']) is False:
-                continue
-            self.column_pair.append(column_pair_generation_sample)
-            if self.fit_heuristics_constraints(scope_pair_generation_sample['prompt']) is False:
-                continue
-            self.scope_pair.append(scope_pair_generation_sample)
+                # 1-shot
+                if self.fit_heuristics_constraints(cell_lookup_generation_sample['prompt']) is False:
+                    continue
+                self.cell_lookup_pair.append(cell_lookup_generation_sample)
+                if self.fit_heuristics_constraints(cell_lookup_pos_generation_sample['prompt']) is False:
+                    continue
+                self.cell_lookup_pos_pair.append(cell_lookup_pos_generation_sample)
+                if self.fit_heuristics_constraints(row_pair_generation_sample['prompt']) is False:
+                    continue
+                self.row_pair.append(row_pair_generation_sample)
+                if self.fit_heuristics_constraints(column_pair_generation_sample['prompt']) is False:
+                    continue
+                self.column_pair.append(column_pair_generation_sample)
+                if self.fit_heuristics_constraints(scope_pair_generation_sample['prompt']) is False:
+                    continue
+                self.scope_pair.append(scope_pair_generation_sample)
 
-        if self.use_few_shot:
+            elif self.specific_objective == "zero-shot":
+                # zero-shot
+                self.cell_lookup_pair.append(self.cell_lookup_generation(example['table']['rows'], schema_knowledge))
+                self.cell_lookup_pos_pair.append(self.cell_lookup_pos_generation(example['table']['rows'], schema_knowledge))
+                self.row_pair.append(self.table_row_retrieval_generation(example['table']['rows'], schema_knowledge))
+                self.column_pair.append(self.table_column_retrieval_generation(example['table']['header'], schema_knowledge))
+                self.scope_pair.append(self.table_scope_detection_generation(example["table"]['rows'], schema_knowledge))
+
+        if self.specific_objective == "few-shot":
             # few-shot
             self.cell_lookup_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.cell_lookup_pos_pair)
             self.cell_lookup_pos_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.cell_lookup_pos_pair)
@@ -403,7 +447,7 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
             self.scope_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.scope_pair)
 
         # save as jsonl (hybridqa)
-        logging.info(f"{self.dataset_name} tasks datasets have been generated..")
+        logging.info(f"{self.dataset_name} tasks {self.specific_objective} datasets have been generated..")
         save_table_jsonl(self.dataset_name, "cell_lookup", self.mode, self.random_sampling(self.cell_lookup_pair))
         save_table_jsonl(self.dataset_name, "cell_lookup_pos", self.mode, self.random_sampling(self.cell_lookup_pos_pair))
         save_table_jsonl(self.dataset_name, "row_retrieval", self.mode, self.random_sampling(self.row_pair))
@@ -429,40 +473,49 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
                 }
             }
             try:
-                schema_knowledge = self.linearize.retrieve_linear_function(self.linearize_function, self.use_structure_mark, self.add_grammar, self.change_order, structured_data_dict)
+                schema_knowledge = self.linearize.retrieve_linear_function(self.linearize_function, self.use_partition_mark, self.use_format_explanation, self.change_order, structured_data_dict)
             except:
                 continue
-            if idx == 0:
-                cell_lookup_generation_sample_0 = self.retrieve_sample_0(self.cell_lookup_generation(example['table']['rows'][0], schema_knowledge))
-                cell_lookup_pos_generation_sample_0 = self.retrieve_sample_0(self.cell_lookup_pos_generation(example['table']['rows'][0], schema_knowledge))
-                row_pair_generation_sample_0 = self.retrieve_sample_0(self.table_row_retrieval_generation(example['table']['rows'][0], schema_knowledge))
-                column_pair_generation_sample_0 = self.retrieve_sample_0(self.table_column_retrieval_generation(example['table']['header'][0], schema_knowledge))
-                scope_pair_generation_sample_0 = self.retrieve_sample_0(self.table_scope_detection_generation(example["table"]['rows'][0], schema_knowledge))
+            if self.specific_objective == "1-shot":
+                if idx == 0:
+                    cell_lookup_generation_sample_0 = self.retrieve_sample_0(self.cell_lookup_generation(example['table']['rows'][0], schema_knowledge))
+                    cell_lookup_pos_generation_sample_0 = self.retrieve_sample_0(self.cell_lookup_pos_generation(example['table']['rows'][0], schema_knowledge))
+                    row_pair_generation_sample_0 = self.retrieve_sample_0(self.table_row_retrieval_generation(example['table']['rows'][0], schema_knowledge))
+                    column_pair_generation_sample_0 = self.retrieve_sample_0(self.table_column_retrieval_generation(example['table']['header'][0], schema_knowledge))
+                    scope_pair_generation_sample_0 = self.retrieve_sample_0(self.table_scope_detection_generation(example["table"]['rows'][0], schema_knowledge))
 
-            cell_lookup_generation_sample = self.append_sample(self.cell_lookup_generation(example['table']['rows'][0], schema_knowledge), cell_lookup_generation_sample_0)
-            cell_lookup_pos_generation_sample = self.append_sample(self.cell_lookup_pos_generation(example['table']['rows'][0], schema_knowledge), cell_lookup_pos_generation_sample_0)
-            row_pair_generation_sample = self.append_sample(self.table_row_retrieval_generation(example['table']['rows'][0], schema_knowledge), row_pair_generation_sample_0)
-            column_pair_generation_sample = self.append_sample(self.table_column_retrieval_generation(example['table']['header'][0], schema_knowledge), column_pair_generation_sample_0)
-            scope_pair_generation_sample = self.append_sample(self.table_scope_detection_generation(example["table"]['rows'][0], schema_knowledge), scope_pair_generation_sample_0)
+                cell_lookup_generation_sample = self.append_sample(self.cell_lookup_generation(example['table']['rows'][0], schema_knowledge), cell_lookup_generation_sample_0)
+                cell_lookup_pos_generation_sample = self.append_sample(self.cell_lookup_pos_generation(example['table']['rows'][0], schema_knowledge), cell_lookup_pos_generation_sample_0)
+                row_pair_generation_sample = self.append_sample(self.table_row_retrieval_generation(example['table']['rows'][0], schema_knowledge), row_pair_generation_sample_0)
+                column_pair_generation_sample = self.append_sample(self.table_column_retrieval_generation(example['table']['header'][0], schema_knowledge), column_pair_generation_sample_0)
+                scope_pair_generation_sample = self.append_sample(self.table_scope_detection_generation(example["table"]['rows'][0], schema_knowledge), scope_pair_generation_sample_0)
 
-            # zero-shot
-            if self.fit_heuristics_constraints(cell_lookup_generation_sample['prompt']) is False:
-                continue
-            self.cell_lookup_pair.append(cell_lookup_generation_sample)
-            if self.fit_heuristics_constraints(cell_lookup_pos_generation_sample['prompt']) is False:
-                continue
-            self.cell_lookup_pos_pair.append(cell_lookup_pos_generation_sample)
-            if self.fit_heuristics_constraints(row_pair_generation_sample['prompt']) is False:
-                continue
-            self.row_pair.append(row_pair_generation_sample)
-            if self.fit_heuristics_constraints(column_pair_generation_sample['prompt']) is False:
-                continue
-            self.column_pair.append(column_pair_generation_sample)
-            if self.fit_heuristics_constraints(scope_pair_generation_sample['prompt']) is False:
-                continue
-            self.scope_pair.append(scope_pair_generation_sample)
+                # 1-shot
+                if self.fit_heuristics_constraints(cell_lookup_generation_sample['prompt']) is False:
+                    continue
+                self.cell_lookup_pair.append(cell_lookup_generation_sample)
+                if self.fit_heuristics_constraints(cell_lookup_pos_generation_sample['prompt']) is False:
+                    continue
+                self.cell_lookup_pos_pair.append(cell_lookup_pos_generation_sample)
+                if self.fit_heuristics_constraints(row_pair_generation_sample['prompt']) is False:
+                    continue
+                self.row_pair.append(row_pair_generation_sample)
+                if self.fit_heuristics_constraints(column_pair_generation_sample['prompt']) is False:
+                    continue
+                self.column_pair.append(column_pair_generation_sample)
+                if self.fit_heuristics_constraints(scope_pair_generation_sample['prompt']) is False:
+                    continue
+                self.scope_pair.append(scope_pair_generation_sample)
 
-        if self.use_few_shot:
+            elif self.specific_objective == "zero-shot":
+                # zero-shot
+                self.cell_lookup_pair.append(self.cell_lookup_generation(example['table']['rows'][0], schema_knowledge))
+                self.cell_lookup_pos_pair.append(self.cell_lookup_pos_generation(example['table']['rows'][0], schema_knowledge))
+                self.row_pair.append(self.table_row_retrieval_generation(example['table']['rows'][0], schema_knowledge))
+                self.column_pair.append(self.table_column_retrieval_generation(example['table']['header'][0], schema_knowledge))
+                self.scope_pair.append(self.table_scope_detection_generation(example["table"]['rows'][0], schema_knowledge))
+
+        if self.specific_objective == "few-shot":
             # few-shot
             self.cell_lookup_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.cell_lookup_pos_pair)
             self.cell_lookup_pos_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.cell_lookup_pos_pair)
@@ -471,7 +524,7 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
             self.scope_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.scope_pair)
 
         # save as jsonl (feverous)
-        logging.info(f"{self.dataset_name} tasks datasets have been generated..")
+        logging.info(f"{self.dataset_name} tasks {self.specific_objective} datasets have been generated..")
         save_table_jsonl(self.dataset_name, "cell_lookup", self.mode, self.random_sampling(self.cell_lookup_pair))
         save_table_jsonl(self.dataset_name, "cell_lookup_pos", self.mode, self.random_sampling(self.cell_lookup_pos_pair))
         save_table_jsonl(self.dataset_name, "row_retrieval", self.mode, self.random_sampling(self.row_pair))
@@ -523,45 +576,54 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
             }
 
             try:
-                schema_knowledge = self.linearize.retrieve_linear_function(self.linearize_function, self.use_structure_mark, self.add_grammar, self.change_order, structured_data_dict)
+                schema_knowledge = self.linearize.retrieve_linear_function(self.linearize_function, self.use_partition_mark, self.use_format_explanation, self.change_order, structured_data_dict)
             except:
                 continue
-            if idx == 0:
-                cell_lookup_generation_sample_0 = self.retrieve_sample_0(self.cell_lookup_generation(parsed_table, schema_knowledge))
-                cell_lookup_pos_generation_sample_0 = self.retrieve_sample_0(self.cell_lookup_pos_generation(parsed_table, schema_knowledge))
-                row_pair_generation_sample_0 = self.retrieve_sample_0(self.table_row_retrieval_generation(parsed_table, schema_knowledge))
-                column_pair_generation_sample_0 = self.retrieve_sample_0(self.table_column_retrieval_generation(parsed_header, schema_knowledge))
-                scope_pair_generation_sample_0 = self.retrieve_sample_0(self.table_scope_detection_generation(parsed_table, schema_knowledge))
-                column_span_pair_generation_sample_0 = self.retrieve_sample_0(self.column_span_detection_generation(tables, schema_knowledge))
+            if self.specific_objective == "1-shot":
+                if idx == 0:
+                    cell_lookup_generation_sample_0 = self.retrieve_sample_0(self.cell_lookup_generation(parsed_table, schema_knowledge))
+                    cell_lookup_pos_generation_sample_0 = self.retrieve_sample_0(self.cell_lookup_pos_generation(parsed_table, schema_knowledge))
+                    row_pair_generation_sample_0 = self.retrieve_sample_0(self.table_row_retrieval_generation(parsed_table, schema_knowledge))
+                    column_pair_generation_sample_0 = self.retrieve_sample_0(self.table_column_retrieval_generation(parsed_header, schema_knowledge))
+                    scope_pair_generation_sample_0 = self.retrieve_sample_0(self.table_scope_detection_generation(parsed_table, schema_knowledge))
+                    column_span_pair_generation_sample_0 = self.retrieve_sample_0(self.column_span_detection_generation(tables, schema_knowledge))
 
-            cell_lookup_generation_sample = self.append_sample(self.cell_lookup_generation(parsed_table, schema_knowledge), cell_lookup_generation_sample_0)
-            cell_lookup_pos_generation_sample = self.append_sample(self.cell_lookup_pos_generation(parsed_table, schema_knowledge), cell_lookup_pos_generation_sample_0)
-            row_pair_generation_sample = self.append_sample(self.table_row_retrieval_generation(parsed_table, schema_knowledge), row_pair_generation_sample_0)
-            column_pair_generation_sample = self.append_sample(self.table_column_retrieval_generation(parsed_header, schema_knowledge), column_pair_generation_sample_0)
-            scope_pair_generation_sample = self.append_sample(self.table_scope_detection_generation(parsed_table, schema_knowledge), scope_pair_generation_sample_0)
-            column_span_pair_generation_sample = self.append_sample(self.column_span_detection_generation(tables, schema_knowledge), column_span_pair_generation_sample_0)
+                cell_lookup_generation_sample = self.append_sample(self.cell_lookup_generation(parsed_table, schema_knowledge), cell_lookup_generation_sample_0)
+                cell_lookup_pos_generation_sample = self.append_sample(self.cell_lookup_pos_generation(parsed_table, schema_knowledge), cell_lookup_pos_generation_sample_0)
+                row_pair_generation_sample = self.append_sample(self.table_row_retrieval_generation(parsed_table, schema_knowledge), row_pair_generation_sample_0)
+                column_pair_generation_sample = self.append_sample(self.table_column_retrieval_generation(parsed_header, schema_knowledge), column_pair_generation_sample_0)
+                scope_pair_generation_sample = self.append_sample(self.table_scope_detection_generation(parsed_table, schema_knowledge), scope_pair_generation_sample_0)
+                column_span_pair_generation_sample = self.append_sample(self.column_span_detection_generation(tables, schema_knowledge), column_span_pair_generation_sample_0)
 
-            # zero-shot
-            if self.fit_heuristics_constraints(cell_lookup_generation_sample['prompt']) is False:
-                continue
-            self.cell_lookup_pair.append(cell_lookup_generation_sample)
-            if self.fit_heuristics_constraints(cell_lookup_pos_generation_sample['prompt']) is False:
-                continue
-            self.cell_lookup_pos_pair.append(cell_lookup_pos_generation_sample)
-            if self.fit_heuristics_constraints(row_pair_generation_sample['prompt']) is False:
-                continue
-            self.row_pair.append(row_pair_generation_sample)
-            if self.fit_heuristics_constraints(column_pair_generation_sample['prompt']) is False:
-                continue
-            self.column_pair.append(column_pair_generation_sample)
-            if self.fit_heuristics_constraints(scope_pair_generation_sample['prompt']) is False:
-                continue
-            self.scope_pair.append(scope_pair_generation_sample)
-            if self.fit_heuristics_constraints(column_span_pair_generation_sample['prompt']) is False:
-                continue
-            self.column_span_pair.append(column_span_pair_generation_sample)
+                # 1-shot
+                if self.fit_heuristics_constraints(cell_lookup_generation_sample['prompt']) is False:
+                    continue
+                self.cell_lookup_pair.append(cell_lookup_generation_sample)
+                if self.fit_heuristics_constraints(cell_lookup_pos_generation_sample['prompt']) is False:
+                    continue
+                self.cell_lookup_pos_pair.append(cell_lookup_pos_generation_sample)
+                if self.fit_heuristics_constraints(row_pair_generation_sample['prompt']) is False:
+                    continue
+                self.row_pair.append(row_pair_generation_sample)
+                if self.fit_heuristics_constraints(column_pair_generation_sample['prompt']) is False:
+                    continue
+                self.column_pair.append(column_pair_generation_sample)
+                if self.fit_heuristics_constraints(scope_pair_generation_sample['prompt']) is False:
+                    continue
+                self.scope_pair.append(scope_pair_generation_sample)
+                if self.fit_heuristics_constraints(column_span_pair_generation_sample['prompt']) is False:
+                    continue
+                self.column_span_pair.append(column_span_pair_generation_sample)
+            elif self.specific_objective == "zero-shot":
+                # zero-shot
+                self.cell_lookup_pair.append(self.cell_lookup_generation(parsed_table, schema_knowledge))
+                self.cell_lookup_pos_pair.append(self.cell_lookup_pos_generation(parsed_table, schema_knowledge))
+                self.row_pair.append(self.table_row_retrieval_generation(parsed_table, schema_knowledge))
+                self.column_pair.append(self.table_column_retrieval_generation(parsed_header, schema_knowledge))
+                self.scope_pair.append(self.table_scope_detection_generation(parsed_table, schema_knowledge))
+                self.column_span_pair.append(self.column_span_detection_generation(tables, schema_knowledge))
 
-        if self.use_few_shot:
+        if self.specific_objective == "few-shot":
             # few-shot
             self.cell_lookup_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.cell_lookup_pos_pair)
             self.cell_lookup_pos_pair = self.dte_few_shot_generator.generate_few_shot_examples(
@@ -571,7 +633,7 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
             self.scope_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.scope_pair)
 
         # save as jsonl (totto)
-        logging.info(f"{self.dataset_name} tasks datasets have been generated..")
+        logging.info(f"{self.dataset_name} tasks {self.specific_objective} datasets have been generated..")
         save_table_jsonl(self.dataset_name, "cell_lookup", self.mode, self.random_sampling(self.cell_lookup_pair))
         save_table_jsonl(self.dataset_name, "cell_lookup_pos", self.mode, self.random_sampling(self.cell_lookup_pos_pair))
         save_table_jsonl(self.dataset_name, "row_retrieval", self.mode, self.random_sampling(self.row_pair))
@@ -588,7 +650,10 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
         # generate ground_truth
         row_idx, column_idx, cell_value = retrieve_unique_cell_element(cells)
         self.request = f"Retrieve position of the cell value {cell_value} (Use row index and column index to answer, e.g., 2 | 3)\n"
-        cell_lookup_pair["prompt"] = self.instruction + "<request>\n" + self.request + schema_knowledge
+        if self.use_role_prompting:
+            cell_lookup_pair["prompt"] = self.instruction + schema_knowledge + "<request>\n" + self.request + self.end_prompt
+        else:
+            cell_lookup_pair["prompt"] = schema_knowledge + "<request>\n" + self.request + self.end_prompt
         cell_lookup_pair["completion"] = f"{row_idx} | {column_idx}"  # consider header
         return cell_lookup_pair
 
@@ -601,7 +666,10 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
         # generate ground_truth
         row_idx, column_idx, cell_value = retrieve_unique_cell_element(cells)
         self.request = f"Retrieve cell value of row index {row_idx} column index {column_idx} (Only output the answer without other information, e.g., Tom)\n"
-        cell_lookup_pos_pair["prompt"] = self.instruction + "<request>\n" + self.request + schema_knowledge
+        if self.use_role_prompting:
+            cell_lookup_pos_pair["prompt"] = self.instruction + schema_knowledge + "<request>\n" + self.request + self.end_prompt
+        else:
+            cell_lookup_pos_pair["prompt"] = schema_knowledge + "<request>\n" + self.request + self.end_prompt
         cell_lookup_pos_pair["completion"] = str(cell_value)
         return cell_lookup_pos_pair
 
@@ -616,7 +684,10 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
         # generate ground_truth
         row_idx, row_value = retrieve_unique_row_element(rows)
         self.request = f"Only list the cell values (separating by |) of the {row_idx} row of following table \n"
-        row_retrieve_pair["prompt"] = self.instruction + "<request>\n" + self.request + schema_knowledge
+        if self.use_role_prompting:
+            row_retrieve_pair["prompt"] = self.instruction + schema_knowledge + "<request>\n" + self.request + self.end_prompt
+        else:
+            row_retrieve_pair["prompt"] = schema_knowledge + "<request>\n" + self.request + self.end_prompt
         row_retrieve_pair["completion"] = " | ".join(row_value)
         return row_retrieve_pair
 
@@ -629,7 +700,10 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
         # generate ground_truth
         column_idx, column_name = retrieve_unique_row_element(columns)
         self.request = f"Only output the column name of the {column_idx} column of following table \n"
-        row_retrieve_pair["prompt"] = self.instruction + "<request>\n" + self.request + schema_knowledge
+        if self.use_role_prompting:
+            row_retrieve_pair["prompt"] = self.instruction + schema_knowledge + "<request>\n" + self.request + self.end_prompt
+        else:
+            row_retrieve_pair["prompt"] = schema_knowledge + "<request>\n" + self.request + self.end_prompt
         row_retrieve_pair["completion"] = str(column_name)
         return row_retrieve_pair
 
@@ -644,7 +718,10 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
         rows_len = len(rows)
         column_len = len(rows[0])
         self.request = f"What is the scope of this table (The table has <masked> columns, <masked> rows)) Only give the value, e.g., 2 | 3 \n"
-        ans_detection_pair["prompt"] = self.instruction + "<request>\n" + self.request + schema_knowledge
+        if self.use_role_prompting:
+            ans_detection_pair["prompt"] = self.instruction + schema_knowledge + "<request>\n" + self.request + self.end_prompt
+        else:
+            ans_detection_pair["prompt"] = schema_knowledge + "<request>\n" + self.request + self.end_prompt
         ans_detection_pair["completion"] = f"{rows_len} | {column_len}"
         return ans_detection_pair
 
@@ -670,9 +747,64 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
         for i in column_idx_list:
             column_idx_parsed.append(i[0])
         self.request = f"list the index of the column which span is over 1. use | to split the answer (e.g., 3|4), the column index starts from 0 \n"
-        ans_detection_pair["prompt"] = self.instruction + "<request>\n" + self.request + schema_knowledge
+        if self.use_role_prompting:
+            ans_detection_pair["prompt"] = self.instruction + schema_knowledge + "<request>\n" + self.request + self.end_prompt
+        else:
+            ans_detection_pair["prompt"] = schema_knowledge + "<request>\n" + self.request + self.end_prompt
         ans_detection_pair["completion"] = " | ".join([str(x) for x in column_idx_parsed])
         return ans_detection_pair
+
+    def table_partition_generation(self, rows, schema_knowledge):
+        """
+        Detect the boundary of the table within a given user input design.
+        """
+        self.task = "table_partition"
+        ana_detection_pair = {}
+        # generate partition ground_truth
+        head_token = rows[0][0]
+        end_token = rows[-1][-1]
+        self.request = f"What is the first token of the given table? What is the end token of the given table? Answer questions one by one and use | to split the answer.\n"
+        ana_detection_pair["prompt"] = self.instruction + "<request>\n" + self.request + schema_knowledge
+        ana_detection_pair["completion"] = str(head_token) + "|" + str(end_token)
+
+    def table_transpose_generation(self, rows, schema_knowledge):
+        """
+        Operation and Manipulation. Transpose a table
+        """
+        self.task = "table_transpose"
+        ana_detection_pair = {}
+        # generate ground_truth
+        transposed_table = np.array(rows).T
+        partition = []
+        for i in range(len(transposed_table)):
+            partition.append(transposed_table[i] + "\n")
+            if i == 5:
+                break
+        ground_truth = " | ".join(partition)
+        self.request = f"Transpose the table (including the headers) and output the first 5 rows one by one, use | to split cell value, and use \n to split rows\n"
+        if self.use_role_prompting:
+            ana_detection_pair["prompt"] = self.instruction + schema_knowledge + "<request>\n" + self.request + self.end_prompt
+        else:
+            ana_detection_pair["prompt"] = schema_knowledge + "<request>\n" + self.request + self.end_prompt
+        ana_detection_pair["completion"] = ground_truth
+
+    def column_swap_generation(self, rows, schema_knowledge):
+        """
+        swap two columns
+        """
+        self.task = "column_swap"
+        ana_detection_pair = {}
+        start_index = random.choice(len(rows[0]))
+        end_index = random.choice(len(rows[0]))
+        while start_index == end_index:
+            end_index = random.choice(len(rows[0]))
+        self.request = f"Swap column {start_index} and column {end_index}, and output the column {start_index} value one by one, use | to split cell value\n"
+        swap_rows = retrieve_swap_tables(rows, start_index, end_index)
+        if self.use_role_prompting:
+            ana_detection_pair["prompt"] = self.instruction + schema_knowledge + "<request>\n" + self.request + self.end_prompt
+        else:
+            ana_detection_pair["prompt"] = schema_knowledge + "<request>\n" + self.request + self.end_prompt
+        ana_detection_pair["completion"] = " | ".join(swap_rows[:, start_index])
 
 
 class TableInputPartitionGenerator(InputPartitionGenerator):
@@ -702,19 +834,20 @@ class FormDataRetrievalGenerator(DataRetrievalGenerator):
             self.form_datasets_list = args.dataset
         self.task = None
         self.request = None
-        self.use_few_shot = args.use_few_shot
+        self.objective = args.objective
         self.structured_type = "form"
         self.instruction = f"You are a brilliant {self.structured_type} executor with the capabilities [retrieve], [input parsing], [metadata inference], [pattern understanding] who can solve every tasks related to {self.structured_type}.\n"
-        self.end_prompt = "The answer is "
+        self.end_prompt = "The answer is \n"
         self.form_linearizer = FormLinearize()
-        for form_dataset in self.form_datasets_list:  # ['formlm']
-            self.babel_convertor.set_split_obj(form_dataset, self.structured_type, self.split, self.objective,
-                                               self.instruction)
-            self.dataset = self.babel_convertor.dataset
-            self.dataset_name = form_dataset
-            self.block_traversal_pair = []
-            self.block_dependency_pair = []
-            self.retrieve_sample_list()
+        for objective in self.objective:
+            for form_dataset in self.form_datasets_list:  # ['formlm']
+                self.babel_convertor.set_split_obj(form_dataset, self.structured_type, self.split, objective, self.instruction)
+                self.dataset = self.babel_convertor.dataset
+                self.specific_objective = objective
+                self.dataset_name = form_dataset
+                self.block_traversal_pair = []
+                self.block_dependency_pair = []
+                self.retrieve_sample_list()
 
     def retrieve_sample_list(self):
         dict = {
@@ -731,12 +864,12 @@ class FormDataRetrievalGenerator(DataRetrievalGenerator):
             self.block_dependency_pair.append(self.block_dependency_pair_generation(body, schema_knowledge))
             self.block_traversal_pair.append(self.block_traversal_pair_generation(body, schema_knowledge))
 
-        if self.use_few_shot:
+        if self.specific_objective == "few-shot":
             self.block_dependency_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.block_dependency_pair)
             self.block_traversal_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.block_traversal_pair)
 
         # save as jsonl (formlm)
-        logging.info(f"{self.dataset_name} tasks datasets have been generated..")
+        logging.info(f"{self.dataset_name} tasks {self.specific_objective} datasets have been generated..")
         save_form_jsonl(self.dataset_name, "block_dependency", "", self.block_dependency_pair)
         save_form_jsonl(self.dataset_name, "block_traversal", "", self.block_traversal_pair)
 
@@ -750,8 +883,7 @@ class FormDataRetrievalGenerator(DataRetrievalGenerator):
         block_title = blocks[index]['title']
         block_type = blocks[index]['type']
         self.request = f"Retrieve {index} block's title and type value; use | to split the answer (e.g., Name(Optional) | None), the block index starts from 0 \n"
-        block_traversal_pair[
-            "prompt"] = self.instruction + "<request>\n" + self.request + schema_knowledge + self.end_prompt
+        block_traversal_pair["prompt"] = self.instruction + "<request>\n" + self.request + schema_knowledge + self.end_prompt
         block_traversal_pair["completion"] = block_title + " | " + block_type
         return block_traversal_pair
 
@@ -773,27 +905,17 @@ class FormDataRetrievalGenerator(DataRetrievalGenerator):
 
 
 def get_arguments():
-    # Required parameters
+    # required parameters
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset", default=["hybridqa"], nargs="+",
-                        help="Please specifiy the task name.")
-    # parser.add_argument("--dataset", default=["formlm"], nargs="+", help="Please specifiy the task name.")
-    # parser.add_argument("--structured_type", default="table", help="Please specify the type of the structured data.", type=str, choices=DATASETS.keys())
-    parser.add_argument("--objective", default=["zero"], nargs="+",
-                        help="Please specify the parsing objective.")  # choices = ['zero', 'heur_{idx}', 'linear_{idx}']
+    parser.add_argument("--dataset", default=["hybridqa"], nargs="+", help="Please specifiy the task name.")
+    parser.add_argument("--split", default=["validation"], nargs="+", help="Please specify which split you want to generate/parse.")  # choices = ['train', 'validation', 'test']
+    parser.add_argument("--objective", default=["1-shot", "few-shot"], nargs="+", help="Please specify the parsing objective.")  # choices = ['zero', 'heur_{idx}', 'linear_{idx}']
     # linearize
-    parser.add_argument("--linearize_list", default=["markdown", "markdown_grid", "html", "json", "latex", "nl_sep"], nargs="+")
-    parser.add_argument("--use_structure_mark", default=False, action="store_true")
-    parser.add_argument("--add_grammar", default=False, action="store_true")
+    parser.add_argument("--linearize_list", default=["markdown", "html", "json", "latex", "nl_sep"], nargs="+")
+    parser.add_argument("--use_partition_mark", default=False, action="store_true")
+    parser.add_argument("--use_format_explanation", default=False, action="store_true")
     parser.add_argument("--change_order", default=False, action="store_true")
-
-    parser.add_argument("--split", default=["validation"], nargs="+",
-                        help="Please specify which split you want to generate/parse.")  # choices = ['train', 'validation', 'test']
-    parser.add_argument("--unified", default=False, action="store_true",
-                        help="generate the unified file for babel input")
-    parser.add_argument("--use_few_shot", default=False, action="store_true",
-                        help="generate the unified file for babel input")
-    parser.add_argument("--unified_file_output", default="./exps/downstream_tasks_20230113_log/", type=str)
+    parser.add_argument("--use_role_prompting", default=False, action="store_true")
     args = parser.parse_args()
     return args
 
