@@ -1,5 +1,5 @@
 # zero-shot
-python unified_benchmark_generator.py --dataset tabfact feverous sqa hybridqa totto --objective zero-shot --split validation --linearize_list html --use_partition_mark --use_format_explanation --use_role_prompting
+python unified_benchmark_generator.py --dataset totto --objective zero-shot --split validation --linearize_list html --use_partition_mark --use_format_explanation --use_role_prompting
 #=============================
 ## few-shot
 #python unified_benchmark_generator.py --dataset tabfact feverous sqa hybridqa totto --objective few-shot --split validation --linearize_list html --use_partition_mark --use_format_explanation --use_role_prompting

@@ -736,6 +736,7 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
                 cell_lookup_pos_generation_sample = self.cell_lookup_pos_generation(parsed_table, schema_knowledge)
                 row_pair_generation_sample = self.table_row_retrieval_generation(parsed_table, schema_knowledge)
                 column_pair_generation_sample = self.table_column_retrieval_generation(parsed_header, schema_knowledge)
+                column_span_pair_generation_sample = self.column_merged_cell_detection_generation(tables, schema_knowledge)
                 size_pair_generation_sample = self.table_size_detection_generation(parsed_table, schema_knowledge)
                 table_partition_pair_generation_sample = self.table_partition_generation(parsed_table, schema_knowledge)
 
@@ -751,6 +752,9 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
                 if self.fit_heuristics_constraints(column_pair_generation_sample['prompt']) is False:
                     continue
                 self.column_pair.append(column_pair_generation_sample)
+                if self.fit_heuristics_constraints(column_span_pair_generation_sample['prompt']) is False:
+                    continue
+                self.column_span_pair.append(column_span_pair_generation_sample)
                 if self.fit_heuristics_constraints(size_pair_generation_sample['prompt']) is False:
                     continue
                 self.size_pair.append(size_pair_generation_sample)
@@ -766,6 +770,7 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
             self.row_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.row_pair)
             self.column_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.column_pair)
             self.size_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.size_pair)
+            self.column_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.column_span_pair)
             self.table_partition = self.dte_few_shot_generator.generate_few_shot_examples(self.table_partition)
 
         # save as jsonl (totto)
@@ -888,8 +893,12 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
         self.task = "table_partition"
         ana_detection_pair = {}
         # generate partition ground_truth
-        head_token = rows[0][0]
-        end_token = rows[-1][-1]
+        try:
+            head_token = rows[0][0]
+            end_token = rows[-1][-1]
+        except:
+            head_token = ""
+            end_token = ""
         self.request = f"What is the first token of the given table? What is the end token of the given table? Answer questions one by one and use | to split the answer.\n"
         ana_detection_pair["prompt"] = self.instruction + "<request>\n" + self.request + schema_knowledge
         ana_detection_pair["completion"] = str(head_token) + "|" + str(end_token)
@@ -1045,11 +1054,11 @@ class FormDataRetrievalGenerator(DataRetrievalGenerator):
 def get_arguments():
     # required parameters
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset", default=["totto"], nargs="+", help="Please specifiy the task name.")
+    parser.add_argument("--dataset", default=["hybridqa"], nargs="+", help="Please specifiy the task name.")
     parser.add_argument("--split", default=["validation"], nargs="+", help="Please specify which split you want to generate/parse.")  # choices = ['train', 'validation', 'test']
-    parser.add_argument("--objective", default=["zero-shot", "1-shot", "few-shot"], nargs="+", help="Please specify the parsing objective.")  # choices = ['zero', 'heur_{idx}', 'linear_{idx}']
+    parser.add_argument("--objective", default=["zero-shot"], nargs="+", help="Please specify the parsing objective.")  # choices = ['zero', 'heur_{idx}', 'linear_{idx}']
     # linearize
-    parser.add_argument("--linearize_list", default=["markdown", "html", "json", "latex", "nl_sep"], nargs="+")
+    parser.add_argument("--linearize_list", default=["html"], nargs="+")
     parser.add_argument("--use_partition_mark", default=False, action="store_true")
     parser.add_argument("--use_format_explanation", default=False, action="store_true")
     parser.add_argument("--use_role_prompting", default=False, action="store_true")
