@@ -2,20 +2,19 @@ import argparse
 import json
 import logging
 import os
-import sys
 import random
+import sys
+from random import sample
 
 import numpy as np
 from transformers import GPT2TokenizerFast
-from random import sample
+
 from unified_babel_convertor import BabelConvertor
-from config import DATASETS
 
 sys.path.insert(0, "utils")
 
-from datasets import load_dataset
-from utils import get_unique_items, load_json, FormLinearize, StructuredDataLinearize
-from config import DATASETS, get_heuristics, get_requests
+from utils import FormLinearize, StructuredDataLinearize
+from config import DATASETS
 
 # from tprompt.dte.embedding import DTEEmbedding
 # from tprompt.dte.generator import generate_embeddings
@@ -72,7 +71,7 @@ class BabelBenchmarkGenerator:
 
     def fit_heuristics_constraints(self, sequence):
         tokenized_sequence = self.tokenizer(sequence).input_ids
-        if len(tokenized_sequence) < 4000:  # the max seq_length of GPT-3
+        if len(tokenized_sequence) < 3500:  # the max seq_length of GPT-3
             return True
         else:
             return False
@@ -158,7 +157,7 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
         self.use_partition_mark = args.use_partition_mark  # mark as 0
         self.use_format_explanation = args.use_format_explanation  # mark as 1
         self.change_order = args.change_order  # mark as 2
-        self.use_role_prompting = args.use_role_prompting # mark as 3
+        self.use_role_prompting = args.use_role_prompting  # mark as 3
 
         # random sample
         self.random_samples = 300
@@ -177,7 +176,7 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
                 self.cell_lookup_pos_pair = []
                 self.row_pair = []
                 self.column_pair = []
-                self.scope_pair = []
+                self.size_pair = []
                 self.column_span_pair = []
                 self.table_partition = []
                 self.table_transpose = []
@@ -187,7 +186,7 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
                     # for saving as jsonl
                     if self.use_partition_mark and self.use_role_prompting and self.use_format_explanation:
                         self.mode = f"{self.linearize_function}_0_1_3"
-                    if self.use_partition_mark and self.use_format_explanation:
+                    elif self.use_partition_mark and self.use_format_explanation:
                         self.mode = f"{self.linearize_function}_0_1"
                     elif self.use_role_prompting:
                         self.mode = f"{self.linearize_function}_3"
@@ -219,7 +218,10 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
         return dict
 
     def random_sampling(self, list):
-        return sample(list, self.random_samples)
+        if len(list) > self.random_samples:
+            return sample(list, self.random_samples)
+        else:
+            return sample(list, len(list))
 
     def retrieval_tabfact_info(self):
         for idx, example in enumerate(self.dataset[self.split]):
@@ -250,13 +252,15 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
                     cell_lookup_pos_generation_sample_0 = self.retrieve_sample_0(self.cell_lookup_pos_generation(example['table']['rows'], schema_knowledge))
                     row_pair_generation_sample_0 = self.retrieve_sample_0(self.table_row_retrieval_generation(example['table']['rows'], schema_knowledge))
                     column_pair_generation_sample_0 = self.retrieve_sample_0(self.table_column_retrieval_generation(example['table']['header'], schema_knowledge))
-                    scope_pair_generation_sample_0 = self.retrieve_sample_0(self.table_scope_detection_generation(example["table"]['rows'], schema_knowledge))
+                    size_pair_generation_sample_0 = self.retrieve_sample_0(self.table_size_detection_generation(example["table"]['rows'], schema_knowledge))
+                    table_partition_pair_generation_sample_0 = self.retrieve_sample_0(self.table_partition_generation(example["table"]["rows"], schema_knowledge))
 
                 cell_lookup_generation_sample = self.append_sample(self.cell_lookup_generation(example['table']['rows'], schema_knowledge), cell_lookup_generation_sample_0)
                 cell_lookup_pos_generation_sample = self.append_sample(self.cell_lookup_pos_generation(example['table']['rows'], schema_knowledge), cell_lookup_pos_generation_sample_0)
                 row_pair_generation_sample = self.append_sample(self.table_row_retrieval_generation(example['table']['rows'], schema_knowledge), row_pair_generation_sample_0)
                 column_pair_generation_sample = self.append_sample(self.table_column_retrieval_generation(example['table']['header'], schema_knowledge), column_pair_generation_sample_0)
-                scope_pair_generation_sample = self.append_sample(self.table_scope_detection_generation(example["table"]['rows'], schema_knowledge), scope_pair_generation_sample_0)
+                size_pair_generation_sample = self.append_sample(self.table_size_detection_generation(example["table"]['rows'], schema_knowledge), size_pair_generation_sample_0)
+                table_partition_pair_generation_sample = self.append_sample(self.table_partition_generation(example["table"]["rows"], schema_knowledge), table_partition_pair_generation_sample_0)
 
                 # 1-shot
                 if self.fit_heuristics_constraints(cell_lookup_generation_sample['prompt']) is False:
@@ -271,17 +275,40 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
                 if self.fit_heuristics_constraints(column_pair_generation_sample['prompt']) is False:
                     continue
                 self.column_pair.append(column_pair_generation_sample)
-                if self.fit_heuristics_constraints(scope_pair_generation_sample['prompt']) is False:
+                if self.fit_heuristics_constraints(size_pair_generation_sample['prompt']) is False:
                     continue
-                self.scope_pair.append(scope_pair_generation_sample)
+                self.size_pair.append(size_pair_generation_sample)
+                if self.fit_heuristics_constraints(table_partition_pair_generation_sample["prompt"]) is False:
+                    continue
+                self.table_partition.append(table_partition_pair_generation_sample)
 
             elif self.specific_objective == "zero-shot":
                 # zero-shot
-                self.cell_lookup_pair.append(self.cell_lookup_generation(example['table']['rows'], schema_knowledge))
-                self.cell_lookup_pos_pair.append(self.cell_lookup_pos_generation(example['table']['rows'], schema_knowledge))
-                self.row_pair.append(self.table_row_retrieval_generation(example['table']['rows'], schema_knowledge))
-                self.column_pair.append(self.table_column_retrieval_generation(example['table']['header'], schema_knowledge))
-                self.scope_pair.append(self.table_scope_detection_generation(example["table"]['rows'], schema_knowledge))
+                cell_lookup_generation_sample = self.cell_lookup_generation(example['table']['rows'], schema_knowledge)
+                cell_lookup_pos_generation_sample = self.cell_lookup_pos_generation(example['table']['rows'], schema_knowledge)
+                row_pair_generation_sample = self.table_row_retrieval_generation(example['table']['rows'], schema_knowledge)
+                column_pair_generation_sample = self.table_column_retrieval_generation(example['table']['header'], schema_knowledge)
+                size_pair_generation_sample = self.table_size_detection_generation(example["table"]["rows"], schema_knowledge)
+                table_partition_pair_generation_sample = self.table_partition_generation(example["table"]["rows"], schema_knowledge)
+
+                if self.fit_heuristics_constraints(cell_lookup_generation_sample['prompt']) is False:
+                    continue
+                self.cell_lookup_pair.append(cell_lookup_generation_sample)
+                if self.fit_heuristics_constraints(cell_lookup_pos_generation_sample['prompt']) is False:
+                    continue
+                self.cell_lookup_pos_pair.append(cell_lookup_pos_generation_sample)
+                if self.fit_heuristics_constraints(row_pair_generation_sample['prompt']) is False:
+                    continue
+                self.row_pair.append(row_pair_generation_sample)
+                if self.fit_heuristics_constraints(column_pair_generation_sample['prompt']) is False:
+                    continue
+                self.column_pair.append(column_pair_generation_sample)
+                if self.fit_heuristics_constraints(size_pair_generation_sample['prompt']) is False:
+                    continue
+                self.size_pair.append(size_pair_generation_sample)
+                if self.fit_heuristics_constraints(table_partition_pair_generation_sample["prompt"]) is False:
+                    continue
+                self.table_partition.append(table_partition_pair_generation_sample)
 
         if self.specific_objective == "few-shot":
             # few-shot
@@ -289,7 +316,8 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
             self.cell_lookup_pos_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.cell_lookup_pos_pair)
             self.row_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.row_pair)
             self.column_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.column_pair)
-            self.scope_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.scope_pair)
+            self.size_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.size_pair)
+            self.table_partition = self.dte_few_shot_generator.generate_few_shot_examples(self.table_partition)
 
         # save as jsonl (tabfact)
         logging.info(f"{self.dataset_name} tasks {self.specific_objective} datasets have been generated..")
@@ -297,7 +325,8 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
         save_table_jsonl(self.dataset_name, "cell_lookup_pos", self.mode, self.random_sampling(self.cell_lookup_pos_pair))
         save_table_jsonl(self.dataset_name, "row_retrieval", self.mode, self.random_sampling(self.row_pair))
         save_table_jsonl(self.dataset_name, "column_retrieval", self.mode, self.random_sampling(self.column_pair))
-        save_table_jsonl(self.dataset_name, "scope_detection", self.mode, self.random_sampling(self.scope_pair))
+        save_table_jsonl(self.dataset_name, "size_detection", self.mode, self.random_sampling(self.size_pair))
+        save_table_jsonl(self.dataset_name, "table_partition", self.mode, self.random_sampling(self.table_partition))
 
     def retrieval_sqa_info(self):
         for idx, example in enumerate(self.dataset[self.split]):
@@ -328,13 +357,15 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
                     cell_lookup_pos_generation_sample_0 = self.retrieve_sample_0(self.cell_lookup_pos_generation(example['table_data'], schema_knowledge))
                     row_pair_generation_sample_0 = self.retrieve_sample_0(self.table_row_retrieval_generation(example['table_data'], schema_knowledge))
                     column_pair_generation_sample_0 = self.retrieve_sample_0(self.table_column_retrieval_generation(example['table_header'], schema_knowledge))
-                    scope_pair_generation_sample_0 = self.retrieve_sample_0(self.table_scope_detection_generation(example['table_data'], schema_knowledge))
+                    size_pair_generation_sample_0 = self.retrieve_sample_0(self.table_size_detection_generation(example['table_data'], schema_knowledge))
+                    table_partition_pair_generation_sample_0 = self.retrieve_sample_0(self.table_partition_generation(example["table_data"], schema_knowledge))
 
                 cell_lookup_generation_sample = self.append_sample(self.cell_lookup_generation(example['table_data'], schema_knowledge), cell_lookup_generation_sample_0)
                 cell_lookup_pos_generation_sample = self.append_sample(self.cell_lookup_pos_generation(example['table_data'], schema_knowledge), cell_lookup_pos_generation_sample_0)
                 row_pair_generation_sample = self.append_sample(self.table_row_retrieval_generation(example['table_data'], schema_knowledge), row_pair_generation_sample_0)
                 column_pair_generation_sample = self.append_sample(self.table_column_retrieval_generation(example['table_header'], schema_knowledge), column_pair_generation_sample_0)
-                scope_pair_generation_sample = self.append_sample(self.table_scope_detection_generation(example['table_data'], schema_knowledge), scope_pair_generation_sample_0)
+                size_pair_generation_sample = self.append_sample(self.table_size_detection_generation(example['table_data'], schema_knowledge), size_pair_generation_sample_0)
+                table_partition_pair_generation_sample = self.append_sample(self.table_partition_generation(example["table_data"], schema_knowledge), table_partition_pair_generation_sample_0)
 
                 # 1-shot
                 if self.fit_heuristics_constraints(cell_lookup_generation_sample['prompt']) is False:
@@ -349,17 +380,40 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
                 if self.fit_heuristics_constraints(column_pair_generation_sample['prompt']) is False:
                     continue
                 self.column_pair.append(column_pair_generation_sample)
-                if self.fit_heuristics_constraints(scope_pair_generation_sample['prompt']) is False:
+                if self.fit_heuristics_constraints(size_pair_generation_sample['prompt']) is False:
                     continue
-                self.scope_pair.append(scope_pair_generation_sample)
+                self.size_pair.append(size_pair_generation_sample)
+                if self.fit_heuristics_constraints(table_partition_pair_generation_sample["prompt"]) is False:
+                    continue
+                self.table_partition.append(table_partition_pair_generation_sample)
 
             elif self.specific_objective == "zero-shot":
                 # zero-shot
-                self.cell_lookup_pair.append(self.cell_lookup_generation(example['table']['rows'], schema_knowledge))
-                self.cell_lookup_pos_pair.append(self.cell_lookup_pos_generation(example['table']['rows'], schema_knowledge))
-                self.row_pair.append(self.table_row_retrieval_generation(example['table']['rows'], schema_knowledge))
-                self.column_pair.append(self.table_column_retrieval_generation(example['table']['header'], schema_knowledge))
-                self.scope_pair.append(self.table_scope_detection_generation(example["table"]['rows'], schema_knowledge))
+                cell_lookup_generation_sample = self.cell_lookup_generation(example['table_data'], schema_knowledge)
+                cell_lookup_pos_generation_sample = self.cell_lookup_pos_generation(example['table_data'], schema_knowledge)
+                row_pair_generation_sample = self.table_row_retrieval_generation(example['table_data'], schema_knowledge)
+                column_pair_generation_sample = self.table_column_retrieval_generation(example['table_header'], schema_knowledge)
+                size_pair_generation_sample = self.table_size_detection_generation(example['table_data'], schema_knowledge)
+                table_partition_pair_generation_sample = self.table_partition_generation(example['table_data'], schema_knowledge)
+
+                if self.fit_heuristics_constraints(cell_lookup_generation_sample['prompt']) is False:
+                    continue
+                self.cell_lookup_pair.append(cell_lookup_generation_sample)
+                if self.fit_heuristics_constraints(cell_lookup_pos_generation_sample['prompt']) is False:
+                    continue
+                self.cell_lookup_pos_pair.append(cell_lookup_pos_generation_sample)
+                if self.fit_heuristics_constraints(row_pair_generation_sample['prompt']) is False:
+                    continue
+                self.row_pair.append(row_pair_generation_sample)
+                if self.fit_heuristics_constraints(column_pair_generation_sample['prompt']) is False:
+                    continue
+                self.column_pair.append(column_pair_generation_sample)
+                if self.fit_heuristics_constraints(size_pair_generation_sample['prompt']) is False:
+                    continue
+                self.size_pair.append(size_pair_generation_sample)
+                if self.fit_heuristics_constraints(table_partition_pair_generation_sample['prompt']) is False:
+                    continue
+                self.table_partition.append(table_partition_pair_generation_sample)
 
         if self.specific_objective == "few-shot":
             # few-shot
@@ -367,7 +421,8 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
             self.cell_lookup_pos_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.cell_lookup_pos_pair)
             self.row_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.row_pair)
             self.column_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.column_pair)
-            self.scope_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.scope_pair)
+            self.size_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.size_pair)
+            self.table_partition = self.dte_few_shot_generator.generate_few_shot_examples(self.table_partition)
 
         # save as jsonl (sqa)
         logging.info(f"{self.dataset_name} tasks {self.specific_objective} datasets have been generated..")
@@ -375,7 +430,8 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
         save_table_jsonl(self.dataset_name, "cell_lookup_pos", self.mode, self.random_sampling(self.cell_lookup_pos_pair))
         save_table_jsonl(self.dataset_name, "row_retrieval", self.mode, self.random_sampling(self.row_pair))
         save_table_jsonl(self.dataset_name, "column_retrieval", self.mode, self.random_sampling(self.column_pair))
-        save_table_jsonl(self.dataset_name, "scope_detection", self.mode, self.random_sampling(self.scope_pair))
+        save_table_jsonl(self.dataset_name, "size_detection", self.mode, self.random_sampling(self.size_pair))
+        save_table_jsonl(self.dataset_name, "table_partition", self.mode, self.random_sampling(self.table_partition))
 
     def retrieval_hybridqa_info(self):
         for idx, example in enumerate(self.dataset[self.split]):
@@ -405,13 +461,15 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
                     cell_lookup_pos_generation_sample_0 = self.retrieve_sample_0(self.cell_lookup_pos_generation(example['table']['rows'], schema_knowledge))
                     row_pair_generation_sample_0 = self.retrieve_sample_0(self.table_row_retrieval_generation(example['table']['rows'], schema_knowledge))
                     column_pair_generation_sample_0 = self.retrieve_sample_0(self.table_column_retrieval_generation(example['table']['header'], schema_knowledge))
-                    scope_pair_generation_sample_0 = self.retrieve_sample_0(self.table_scope_detection_generation(example["table"]['rows'], schema_knowledge))
+                    size_pair_generation_sample_0 = self.retrieve_sample_0(self.table_size_detection_generation(example["table"]['rows'], schema_knowledge))
+                    table_partition_pair_generation_sample_0 = self.retrieve_sample_0(self.table_partition_generation(example["table"]["rows"], schema_knowledge))
 
                 cell_lookup_generation_sample = self.append_sample(self.cell_lookup_generation(example['table']['rows'], schema_knowledge), cell_lookup_generation_sample_0)
                 cell_lookup_pos_generation_sample = self.append_sample(self.cell_lookup_pos_generation(example['table']['rows'], schema_knowledge), cell_lookup_pos_generation_sample_0)
                 row_pair_generation_sample = self.append_sample(self.table_row_retrieval_generation(example['table']['rows'], schema_knowledge), row_pair_generation_sample_0)
                 column_pair_generation_sample = self.append_sample(self.table_column_retrieval_generation(example['table']['header'], schema_knowledge), column_pair_generation_sample_0)
-                scope_pair_generation_sample = self.append_sample(self.table_scope_detection_generation(example["table"]['rows'], schema_knowledge), scope_pair_generation_sample_0)
+                size_pair_generation_sample = self.append_sample(self.table_size_detection_generation(example["table"]['rows'], schema_knowledge), size_pair_generation_sample_0)
+                table_partition_pair_generation_sample = self.append_sample(self.table_partition_generation(example["table"]['rows'], schema_knowledge), table_partition_pair_generation_sample_0)
 
                 # 1-shot
                 if self.fit_heuristics_constraints(cell_lookup_generation_sample['prompt']) is False:
@@ -426,17 +484,40 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
                 if self.fit_heuristics_constraints(column_pair_generation_sample['prompt']) is False:
                     continue
                 self.column_pair.append(column_pair_generation_sample)
-                if self.fit_heuristics_constraints(scope_pair_generation_sample['prompt']) is False:
+                if self.fit_heuristics_constraints(size_pair_generation_sample['prompt']) is False:
                     continue
-                self.scope_pair.append(scope_pair_generation_sample)
+                self.size_pair.append(size_pair_generation_sample)
+                if self.fit_heuristics_constraints(table_partition_pair_generation_sample['prompt']) is False:
+                    continue
+                self.table_partition.append(table_partition_pair_generation_sample)
 
             elif self.specific_objective == "zero-shot":
                 # zero-shot
-                self.cell_lookup_pair.append(self.cell_lookup_generation(example['table']['rows'], schema_knowledge))
-                self.cell_lookup_pos_pair.append(self.cell_lookup_pos_generation(example['table']['rows'], schema_knowledge))
-                self.row_pair.append(self.table_row_retrieval_generation(example['table']['rows'], schema_knowledge))
-                self.column_pair.append(self.table_column_retrieval_generation(example['table']['header'], schema_knowledge))
-                self.scope_pair.append(self.table_scope_detection_generation(example["table"]['rows'], schema_knowledge))
+                cell_lookup_generation_sample = self.cell_lookup_generation(example['table']['rows'], schema_knowledge)
+                cell_lookup_pos_generation_sample = self.cell_lookup_pos_generation(example['table']['rows'], schema_knowledge)
+                row_pair_generation_sample = self.table_row_retrieval_generation(example['table']['rows'], schema_knowledge)
+                column_pair_generation_sample = self.table_column_retrieval_generation(example['table']['header'], schema_knowledge)
+                size_pair_generation_sample = self.table_size_detection_generation(example["table"]['rows'], schema_knowledge)
+                table_partition_pair_generation_sample = self.table_partition_generation(example["table"]['rows'], schema_knowledge)
+
+                if self.fit_heuristics_constraints(cell_lookup_generation_sample['prompt']) is False:
+                    continue
+                self.cell_lookup_pair.append(cell_lookup_generation_sample)
+                if self.fit_heuristics_constraints(cell_lookup_pos_generation_sample['prompt']) is False:
+                    continue
+                self.cell_lookup_pos_pair.append(cell_lookup_pos_generation_sample)
+                if self.fit_heuristics_constraints(row_pair_generation_sample['prompt']) is False:
+                    continue
+                self.row_pair.append(row_pair_generation_sample)
+                if self.fit_heuristics_constraints(column_pair_generation_sample['prompt']) is False:
+                    continue
+                self.column_pair.append(column_pair_generation_sample)
+                if self.fit_heuristics_constraints(size_pair_generation_sample['prompt']) is False:
+                    continue
+                self.size_pair.append(size_pair_generation_sample)
+                if self.fit_heuristics_constraints(table_partition_pair_generation_sample['prompt']) is False:
+                    continue
+                self.table_partition.append(table_partition_pair_generation_sample)
 
         if self.specific_objective == "few-shot":
             # few-shot
@@ -444,7 +525,8 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
             self.cell_lookup_pos_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.cell_lookup_pos_pair)
             self.row_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.row_pair)
             self.column_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.column_pair)
-            self.scope_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.scope_pair)
+            self.size_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.size_pair)
+            self.table_partition = self.dte_few_shot_generator.generate_few_shot_examples(self.table_partition)
 
         # save as jsonl (hybridqa)
         logging.info(f"{self.dataset_name} tasks {self.specific_objective} datasets have been generated..")
@@ -452,7 +534,8 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
         save_table_jsonl(self.dataset_name, "cell_lookup_pos", self.mode, self.random_sampling(self.cell_lookup_pos_pair))
         save_table_jsonl(self.dataset_name, "row_retrieval", self.mode, self.random_sampling(self.row_pair))
         save_table_jsonl(self.dataset_name, "column_retrieval", self.mode, self.random_sampling(self.column_pair))
-        save_table_jsonl(self.dataset_name, "scope_detection", self.mode, self.random_sampling(self.scope_pair))
+        save_table_jsonl(self.dataset_name, "size_detection", self.mode, self.random_sampling(self.size_pair))
+        save_table_jsonl(self.dataset_name, "table_partition", self.mode, self.random_sampling(self.table_partition))
 
     def retrieval_feverous_info(self):
         for idx, example in enumerate(self.dataset[self.split]):
@@ -482,13 +565,15 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
                     cell_lookup_pos_generation_sample_0 = self.retrieve_sample_0(self.cell_lookup_pos_generation(example['table']['rows'][0], schema_knowledge))
                     row_pair_generation_sample_0 = self.retrieve_sample_0(self.table_row_retrieval_generation(example['table']['rows'][0], schema_knowledge))
                     column_pair_generation_sample_0 = self.retrieve_sample_0(self.table_column_retrieval_generation(example['table']['header'][0], schema_knowledge))
-                    scope_pair_generation_sample_0 = self.retrieve_sample_0(self.table_scope_detection_generation(example["table"]['rows'][0], schema_knowledge))
+                    size_pair_generation_sample_0 = self.retrieve_sample_0(self.table_size_detection_generation(example["table"]['rows'][0], schema_knowledge))
+                    table_partition_pair_generation_sample_0 = self.retrieve_sample_0(self.table_partition_generation(example["table"]["rows"], schema_knowledge))
 
                 cell_lookup_generation_sample = self.append_sample(self.cell_lookup_generation(example['table']['rows'][0], schema_knowledge), cell_lookup_generation_sample_0)
                 cell_lookup_pos_generation_sample = self.append_sample(self.cell_lookup_pos_generation(example['table']['rows'][0], schema_knowledge), cell_lookup_pos_generation_sample_0)
                 row_pair_generation_sample = self.append_sample(self.table_row_retrieval_generation(example['table']['rows'][0], schema_knowledge), row_pair_generation_sample_0)
                 column_pair_generation_sample = self.append_sample(self.table_column_retrieval_generation(example['table']['header'][0], schema_knowledge), column_pair_generation_sample_0)
-                scope_pair_generation_sample = self.append_sample(self.table_scope_detection_generation(example["table"]['rows'][0], schema_knowledge), scope_pair_generation_sample_0)
+                size_pair_generation_sample = self.append_sample(self.table_size_detection_generation(example["table"]['rows'][0], schema_knowledge), size_pair_generation_sample_0)
+                table_partition_pair_generation_sample = self.append_sample(self.table_partition_generation(example["table"]['rows'][0], schema_knowledge), table_partition_pair_generation_sample_0)
 
                 # 1-shot
                 if self.fit_heuristics_constraints(cell_lookup_generation_sample['prompt']) is False:
@@ -503,17 +588,40 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
                 if self.fit_heuristics_constraints(column_pair_generation_sample['prompt']) is False:
                     continue
                 self.column_pair.append(column_pair_generation_sample)
-                if self.fit_heuristics_constraints(scope_pair_generation_sample['prompt']) is False:
+                if self.fit_heuristics_constraints(size_pair_generation_sample['prompt']) is False:
                     continue
-                self.scope_pair.append(scope_pair_generation_sample)
+                self.size_pair.append(size_pair_generation_sample)
+                if self.fit_heuristics_constraints(table_partition_pair_generation_sample['prompt']) is False:
+                    continue
+                self.table_partition.append(table_partition_pair_generation_sample)
 
             elif self.specific_objective == "zero-shot":
                 # zero-shot
-                self.cell_lookup_pair.append(self.cell_lookup_generation(example['table']['rows'][0], schema_knowledge))
-                self.cell_lookup_pos_pair.append(self.cell_lookup_pos_generation(example['table']['rows'][0], schema_knowledge))
-                self.row_pair.append(self.table_row_retrieval_generation(example['table']['rows'][0], schema_knowledge))
-                self.column_pair.append(self.table_column_retrieval_generation(example['table']['header'][0], schema_knowledge))
-                self.scope_pair.append(self.table_scope_detection_generation(example["table"]['rows'][0], schema_knowledge))
+                cell_lookup_generation_sample = self.cell_lookup_generation(example['table']['rows'][0], schema_knowledge)
+                cell_lookup_pos_generation_sample = self.cell_lookup_pos_generation(example['table']['rows'][0], schema_knowledge)
+                row_pair_generation_sample = self.table_row_retrieval_generation(example['table']['rows'][0], schema_knowledge)
+                column_pair_generation_sample = self.table_column_retrieval_generation(example['table']['header'][0], schema_knowledge)
+                size_pair_generation_sample = self.table_size_detection_generation(example["table"]['rows'][0], schema_knowledge)
+                table_partition_pair_generation_sample = self.table_partition_generation(example["table"]['rows'][0], schema_knowledge)
+
+                if self.fit_heuristics_constraints(cell_lookup_generation_sample['prompt']) is False:
+                    continue
+                self.cell_lookup_pair.append(cell_lookup_generation_sample)
+                if self.fit_heuristics_constraints(cell_lookup_pos_generation_sample['prompt']) is False:
+                    continue
+                self.cell_lookup_pos_pair.append(cell_lookup_pos_generation_sample)
+                if self.fit_heuristics_constraints(row_pair_generation_sample['prompt']) is False:
+                    continue
+                self.row_pair.append(row_pair_generation_sample)
+                if self.fit_heuristics_constraints(column_pair_generation_sample['prompt']) is False:
+                    continue
+                self.column_pair.append(column_pair_generation_sample)
+                if self.fit_heuristics_constraints(size_pair_generation_sample['prompt']) is False:
+                    continue
+                self.size_pair.append(size_pair_generation_sample)
+                if self.fit_heuristics_constraints(table_partition_pair_generation_sample['prompt']) is False:
+                    continue
+                self.table_partition.append(table_partition_pair_generation_sample)
 
         if self.specific_objective == "few-shot":
             # few-shot
@@ -521,7 +629,8 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
             self.cell_lookup_pos_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.cell_lookup_pos_pair)
             self.row_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.row_pair)
             self.column_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.column_pair)
-            self.scope_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.scope_pair)
+            self.size_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.size_pair)
+            self.table_partition = self.dte_few_shot_generator.generate_few_shot_examples(self.table_partition)
 
         # save as jsonl (feverous)
         logging.info(f"{self.dataset_name} tasks {self.specific_objective} datasets have been generated..")
@@ -529,7 +638,8 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
         save_table_jsonl(self.dataset_name, "cell_lookup_pos", self.mode, self.random_sampling(self.cell_lookup_pos_pair))
         save_table_jsonl(self.dataset_name, "row_retrieval", self.mode, self.random_sampling(self.row_pair))
         save_table_jsonl(self.dataset_name, "column_retrieval", self.mode, self.random_sampling(self.column_pair))
-        save_table_jsonl(self.dataset_name, "scope_detection", self.mode, self.random_sampling(self.scope_pair))
+        save_table_jsonl(self.dataset_name, "size_detection", self.mode, self.random_sampling(self.size_pair))
+        save_table_jsonl(self.dataset_name, "table_partition", self.mode, self.random_sampling(self.table_partition))
 
     def retrieval_totoo_info(self):
         for idx, example in enumerate(self.dataset[self.split]):
@@ -585,15 +695,17 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
                     cell_lookup_pos_generation_sample_0 = self.retrieve_sample_0(self.cell_lookup_pos_generation(parsed_table, schema_knowledge))
                     row_pair_generation_sample_0 = self.retrieve_sample_0(self.table_row_retrieval_generation(parsed_table, schema_knowledge))
                     column_pair_generation_sample_0 = self.retrieve_sample_0(self.table_column_retrieval_generation(parsed_header, schema_knowledge))
-                    scope_pair_generation_sample_0 = self.retrieve_sample_0(self.table_scope_detection_generation(parsed_table, schema_knowledge))
-                    column_span_pair_generation_sample_0 = self.retrieve_sample_0(self.column_span_detection_generation(tables, schema_knowledge))
+                    size_pair_generation_sample_0 = self.retrieve_sample_0(self.table_size_detection_generation(parsed_table, schema_knowledge))
+                    column_span_pair_generation_sample_0 = self.retrieve_sample_0(self.column_merged_cell_detection_generation(tables, schema_knowledge))
+                    table_partition_pair_generation_sample_0 = self.retrieve_sample_0(self.table_partition_generation(parsed_table, schema_knowledge))
 
                 cell_lookup_generation_sample = self.append_sample(self.cell_lookup_generation(parsed_table, schema_knowledge), cell_lookup_generation_sample_0)
                 cell_lookup_pos_generation_sample = self.append_sample(self.cell_lookup_pos_generation(parsed_table, schema_knowledge), cell_lookup_pos_generation_sample_0)
                 row_pair_generation_sample = self.append_sample(self.table_row_retrieval_generation(parsed_table, schema_knowledge), row_pair_generation_sample_0)
                 column_pair_generation_sample = self.append_sample(self.table_column_retrieval_generation(parsed_header, schema_knowledge), column_pair_generation_sample_0)
-                scope_pair_generation_sample = self.append_sample(self.table_scope_detection_generation(parsed_table, schema_knowledge), scope_pair_generation_sample_0)
-                column_span_pair_generation_sample = self.append_sample(self.column_span_detection_generation(tables, schema_knowledge), column_span_pair_generation_sample_0)
+                size_pair_generation_sample = self.append_sample(self.table_size_detection_generation(parsed_table, schema_knowledge), size_pair_generation_sample_0)
+                column_span_pair_generation_sample = self.append_sample(self.column_merged_cell_detection_generation(tables, schema_knowledge), column_span_pair_generation_sample_0)
+                table_partition_pair_generation_sample = self.append_sample(self.table_partition_generation(parsed_table, schema_knowledge), table_partition_pair_generation_sample_0)
 
                 # 1-shot
                 if self.fit_heuristics_constraints(cell_lookup_generation_sample['prompt']) is False:
@@ -608,20 +720,43 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
                 if self.fit_heuristics_constraints(column_pair_generation_sample['prompt']) is False:
                     continue
                 self.column_pair.append(column_pair_generation_sample)
-                if self.fit_heuristics_constraints(scope_pair_generation_sample['prompt']) is False:
+                if self.fit_heuristics_constraints(size_pair_generation_sample['prompt']) is False:
                     continue
-                self.scope_pair.append(scope_pair_generation_sample)
+                self.size_pair.append(size_pair_generation_sample)
                 if self.fit_heuristics_constraints(column_span_pair_generation_sample['prompt']) is False:
                     continue
                 self.column_span_pair.append(column_span_pair_generation_sample)
+                if self.fit_heuristics_constraints(table_partition_pair_generation_sample['prompt']) is False:
+                    continue
+                self.table_partition.append(table_partition_pair_generation_sample)
+
             elif self.specific_objective == "zero-shot":
                 # zero-shot
-                self.cell_lookup_pair.append(self.cell_lookup_generation(parsed_table, schema_knowledge))
-                self.cell_lookup_pos_pair.append(self.cell_lookup_pos_generation(parsed_table, schema_knowledge))
-                self.row_pair.append(self.table_row_retrieval_generation(parsed_table, schema_knowledge))
-                self.column_pair.append(self.table_column_retrieval_generation(parsed_header, schema_knowledge))
-                self.scope_pair.append(self.table_scope_detection_generation(parsed_table, schema_knowledge))
-                self.column_span_pair.append(self.column_span_detection_generation(tables, schema_knowledge))
+                cell_lookup_generation_sample = self.cell_lookup_generation(parsed_table, schema_knowledge)
+                cell_lookup_pos_generation_sample = self.cell_lookup_pos_generation(parsed_table, schema_knowledge)
+                row_pair_generation_sample = self.table_row_retrieval_generation(parsed_table, schema_knowledge)
+                column_pair_generation_sample = self.table_column_retrieval_generation(parsed_header, schema_knowledge)
+                size_pair_generation_sample = self.table_size_detection_generation(parsed_table, schema_knowledge)
+                table_partition_pair_generation_sample = self.table_partition_generation(parsed_table, schema_knowledge)
+
+                if self.fit_heuristics_constraints(cell_lookup_generation_sample['prompt']) is False:
+                    continue
+                self.cell_lookup_pair.append(cell_lookup_generation_sample)
+                if self.fit_heuristics_constraints(cell_lookup_pos_generation_sample['prompt']) is False:
+                    continue
+                self.cell_lookup_pos_pair.append(cell_lookup_pos_generation_sample)
+                if self.fit_heuristics_constraints(row_pair_generation_sample['prompt']) is False:
+                    continue
+                self.row_pair.append(row_pair_generation_sample)
+                if self.fit_heuristics_constraints(column_pair_generation_sample['prompt']) is False:
+                    continue
+                self.column_pair.append(column_pair_generation_sample)
+                if self.fit_heuristics_constraints(size_pair_generation_sample['prompt']) is False:
+                    continue
+                self.size_pair.append(size_pair_generation_sample)
+                if self.fit_heuristics_constraints(table_partition_pair_generation_sample['prompt']) is False:
+                    continue
+                self.table_partition.append(table_partition_pair_generation_sample)
 
         if self.specific_objective == "few-shot":
             # few-shot
@@ -630,7 +765,8 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
                 self.cell_lookup_pos_pair)
             self.row_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.row_pair)
             self.column_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.column_pair)
-            self.scope_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.scope_pair)
+            self.size_pair = self.dte_few_shot_generator.generate_few_shot_examples(self.size_pair)
+            self.table_partition = self.dte_few_shot_generator.generate_few_shot_examples(self.table_partition)
 
         # save as jsonl (totto)
         logging.info(f"{self.dataset_name} tasks {self.specific_objective} datasets have been generated..")
@@ -638,8 +774,9 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
         save_table_jsonl(self.dataset_name, "cell_lookup_pos", self.mode, self.random_sampling(self.cell_lookup_pos_pair))
         save_table_jsonl(self.dataset_name, "row_retrieval", self.mode, self.random_sampling(self.row_pair))
         save_table_jsonl(self.dataset_name, "column_retrieval", self.mode, self.random_sampling(self.column_pair))
-        save_table_jsonl(self.dataset_name, "scope_detection", self.mode, self.random_sampling(self.scope_pair))
-        save_table_jsonl(self.dataset_name, "span_detection", self.mode, self.random_sampling(self.column_span_pair))
+        save_table_jsonl(self.dataset_name, "size_detection", self.mode, self.random_sampling(self.size_pair))
+        save_table_jsonl(self.dataset_name, "merged_cell_detection", self.mode, self.random_sampling(self.column_span_pair))
+        save_table_jsonl(self.dataset_name, "table_partition", self.mode, self.random_sampling(self.table_partition))
 
     def cell_lookup_generation(self, cells, schema_knowledge):
         """
@@ -649,7 +786,7 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
         cell_lookup_pair = {}
         # generate ground_truth
         row_idx, column_idx, cell_value = retrieve_unique_cell_element(cells)
-        self.request = f"Retrieve position of the cell value {cell_value} (Use row index and column index to answer, e.g., 2 | 3)\n"
+        self.request = f"What is the position of the cell value {cell_value}? Use row index and column index to answer, e.g., 2 | 3)\n"
         if self.use_role_prompting:
             cell_lookup_pair["prompt"] = self.instruction + schema_knowledge + "<request>\n" + self.request + self.end_prompt
         else:
@@ -665,7 +802,7 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
         cell_lookup_pos_pair = {}
         # generate ground_truth
         row_idx, column_idx, cell_value = retrieve_unique_cell_element(cells)
-        self.request = f"Retrieve cell value of row index {row_idx} column index {column_idx} (Only output the answer without other information, e.g., Tom)\n"
+        self.request = f"What is the cell value of row index {row_idx} column index {column_idx}? Only output the cell value without other information, e.g., Tom)\n"
         if self.use_role_prompting:
             cell_lookup_pos_pair["prompt"] = self.instruction + schema_knowledge + "<request>\n" + self.request + self.end_prompt
         else:
@@ -683,7 +820,7 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
         row_retrieve_pair = {}
         # generate ground_truth
         row_idx, row_value = retrieve_unique_row_element(rows)
-        self.request = f"Only list the cell values (separating by |) of the {row_idx} row of following table \n"
+        self.request = f"What are the cell values of the {row_idx} row in following table? Only list the cell values one by one using | to split the answers \n"
         if self.use_role_prompting:
             row_retrieve_pair["prompt"] = self.instruction + schema_knowledge + "<request>\n" + self.request + self.end_prompt
         else:
@@ -699,7 +836,7 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
         row_retrieve_pair = {}
         # generate ground_truth
         column_idx, column_name = retrieve_unique_row_element(columns)
-        self.request = f"Only output the column name of the {column_idx} column of following table \n"
+        self.request = f"What is the column name with the index {column_idx} of the following table? Only give the column name without any explanation \n"
         if self.use_role_prompting:
             row_retrieve_pair["prompt"] = self.instruction + schema_knowledge + "<request>\n" + self.request + self.end_prompt
         else:
@@ -707,17 +844,17 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
         row_retrieve_pair["completion"] = str(column_name)
         return row_retrieve_pair
 
-    def table_scope_detection_generation(self, rows, schema_knowledge):
+    def table_size_detection_generation(self, rows, schema_knowledge):
         """
         generate scope detection tasks, e.g.,
         "Act as a table parser, What is the scope of this table (The table has <masked> columns, <masked> rows)) Only give the masked value, e.g., 2 | 3?
         """
-        self.task = "scope_detection"
+        self.task = "size_detection"
         ans_detection_pair = {}
         # generate scope ground_truth
         rows_len = len(rows)
         column_len = len(rows[0])
-        self.request = f"What is the scope of this table (The table has <masked> columns, <masked> rows)) Only give the value, e.g., 2 | 3 \n"
+        self.request = f"How many rows in the table? How many columns in the table. Answer the questions one by one and use | to split the answer, e.g., 2 | 3 \n"
         if self.use_role_prompting:
             ans_detection_pair["prompt"] = self.instruction + schema_knowledge + "<request>\n" + self.request + self.end_prompt
         else:
@@ -725,28 +862,18 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
         ans_detection_pair["completion"] = f"{rows_len} | {column_len}"
         return ans_detection_pair
 
-    def cell_based_qa_retrieval_generation(self):
-        """
-        Given a natural language question, the model should be able to identify the relevant cells in the table and provide an answer based on the values of those cells.
-        """
-
-    def join_based_qa_retrieval_generation(self):
-        """
-        Given a natural language question that involves multiple tables, the model should be able to join the relevant tables and retrieve the information needed to answer the question.
-        """
-
-    def column_span_detection_generation(self, columns, schema_knowledge):
+    def column_merged_cell_detection_generation(self, columns, schema_knowledge):
         """
         Retrieve the index of the column which span is over 1. (e.g., 3), the column index starts from 0
         """
-        self.task = "span_detection"
+        self.task = "merged_cell_detection"
         ans_detection_pair = {}
         # generate span ground_truth
         column_idx_list = retrieve_unique_column_span(columns)
         column_idx_parsed = []
         for i in column_idx_list:
             column_idx_parsed.append(i[0])
-        self.request = f"list the index of the column which span is over 1. use | to split the answer (e.g., 3|4), the column index starts from 0 \n"
+        self.request = f"What is the index of the column which span is over 1. use | to split the answer (e.g., 3 | 4), the column index starts from 0 \n"
         if self.use_role_prompting:
             ans_detection_pair["prompt"] = self.instruction + schema_knowledge + "<request>\n" + self.request + self.end_prompt
         else:
@@ -766,6 +893,7 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
         self.request = f"What is the first token of the given table? What is the end token of the given table? Answer questions one by one and use | to split the answer.\n"
         ana_detection_pair["prompt"] = self.instruction + "<request>\n" + self.request + schema_knowledge
         ana_detection_pair["completion"] = str(head_token) + "|" + str(end_token)
+        return ana_detection_pair
 
     def table_transpose_generation(self, rows, schema_knowledge):
         """
@@ -805,6 +933,16 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
         else:
             ana_detection_pair["prompt"] = schema_knowledge + "<request>\n" + self.request + self.end_prompt
         ana_detection_pair["completion"] = " | ".join(swap_rows[:, start_index])
+
+    def cell_based_qa_retrieval_generation(self):
+        """
+        Given a natural language question, the model should be able to identify the relevant cells in the table and provide an answer based on the values of those cells.
+        """
+
+    def join_based_qa_retrieval_generation(self):
+        """
+        Given a natural language question that involves multiple tables, the model should be able to join the relevant tables and retrieve the information needed to answer the question.
+        """
 
 
 class TableInputPartitionGenerator(InputPartitionGenerator):
@@ -907,15 +1045,15 @@ class FormDataRetrievalGenerator(DataRetrievalGenerator):
 def get_arguments():
     # required parameters
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset", default=["hybridqa"], nargs="+", help="Please specifiy the task name.")
+    parser.add_argument("--dataset", default=["totto"], nargs="+", help="Please specifiy the task name.")
     parser.add_argument("--split", default=["validation"], nargs="+", help="Please specify which split you want to generate/parse.")  # choices = ['train', 'validation', 'test']
-    parser.add_argument("--objective", default=["1-shot", "few-shot"], nargs="+", help="Please specify the parsing objective.")  # choices = ['zero', 'heur_{idx}', 'linear_{idx}']
+    parser.add_argument("--objective", default=["zero-shot", "1-shot", "few-shot"], nargs="+", help="Please specify the parsing objective.")  # choices = ['zero', 'heur_{idx}', 'linear_{idx}']
     # linearize
     parser.add_argument("--linearize_list", default=["markdown", "html", "json", "latex", "nl_sep"], nargs="+")
     parser.add_argument("--use_partition_mark", default=False, action="store_true")
     parser.add_argument("--use_format_explanation", default=False, action="store_true")
-    parser.add_argument("--change_order", default=False, action="store_true")
     parser.add_argument("--use_role_prompting", default=False, action="store_true")
+    parser.add_argument("--change_order", default=False, action="store_true")
     args = parser.parse_args()
     return args
 
