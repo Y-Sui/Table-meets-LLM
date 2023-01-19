@@ -11,7 +11,7 @@ sys.path.insert(0, "utils")
 
 from datasets import load_dataset
 from utils import get_unique_items, load_json, FormLinearize, StructuredDataLinearize
-from config import DATASETS, get_heuristics, get_requests
+from config import DATASETS, get_heuristics, get_requests, get_end_prompt
 from transformers import GPT2TokenizerFast
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s', datefmt='%m/%d/%Y %H:%M:%S',
@@ -43,8 +43,8 @@ class BabelConvertor:
         idx = np.random.randint(0, len(training_set))
         return training_set[idx]
 
-    def set_split_obj(self, task: str, structured_type: str, split: str, objective: List[str], instruction: str,
-                      linearize_func: str, use_structure_mark: bool, add_grammar: bool):
+    def set_split_obj(self, task: str, structured_type: str, split: str, objective: str, instruction: str,
+                      linearize_func: str, use_structure_mark: bool, add_grammar: bool, heuristic: str):
         self.prompt_input = []  # refresh when init set_split_obj
         self.split = split
         self.objective = objective
@@ -55,6 +55,7 @@ class BabelConvertor:
         self.linearize_func = linearize_func
         self.use_structure_mark = use_structure_mark
         self.add_grammar = add_grammar
+        self.heuristic = heuristic
         try:
             self.dataset = load_dataset(f"./scripts/unifiedSKG/{task}.py", ignore_verifications=True)
         except:
@@ -163,7 +164,7 @@ class BabelConvertor:
         oneshot_pool = []
 
         if 'oneshot' in self.objective:
-            while len(oneshot_pool) < 128:
+            while len(oneshot_pool) < 512:
                 oneshot_example = self.get_one_shot_example()
 
                 oneshot_prompt = to_linearized_data(oneshot_example)
@@ -175,6 +176,10 @@ class BabelConvertor:
 
                     if len(oneshot_pool) % 32 == 0:
                         print('-', end="", flush=True)
+
+        if self.heuristic != None:
+            self.request = get_heuristics(self.data_type, context_type="statement")[self.heuristic]
+            self.end_prompt = get_end_prompt()[self.heuristic]
 
         for example in self.dataset[self.split]:
             oneshot_prompt = ""
@@ -373,6 +378,10 @@ class BabelConvertor:
 
                     if len(oneshot_pool) % 32 == 0:
                         print('-', end="", flush=True)
+
+        if self.heuristic != None:
+            self.request = get_heuristics(self.data_type, context_type="question")[self.heuristic]
+            self.end_prompt = get_end_prompt()[self.heuristic]
 
         for example in tqdm(self.dataset[self.split], leave=False):
             oneshot_prompt = ""
@@ -601,6 +610,10 @@ class BabelConvertor:
                     # if len(oneshot_pool) % 32 == 0:
                     #     print('-', end="", flush=True)
 
+        if self.heuristic != None:
+            self.request = get_heuristics(self.data_type, context_type="question")[self.heuristic]
+            self.end_prompt = get_end_prompt()[self.heuristic]
+
         for example in tqdm(self.dataset[self.split], leave=False):
             oneshot_prompt = ""
             if self.split != 'train' and 'oneshot' in self.objective:
@@ -639,7 +652,6 @@ class BabelConvertor:
             return ret
 
         oneshot_pool = []
-
         if 'oneshot' in self.objective:
             while len(oneshot_pool) < 512:
                 oneshot_example = self.get_one_shot_example()
@@ -653,6 +665,11 @@ class BabelConvertor:
 
                     if len(oneshot_pool) % 32 == 0:
                         print('-', end="", flush=True)
+
+        # must after oneshot sampling
+        if self.heuristic != None:
+            self.request = get_heuristics(self.data_type, context_type="statement")[self.heuristic]
+            self.end_prompt = get_end_prompt()[self.heuristic]
 
         for example in tqdm(self.dataset[self.split], leave=False):
             oneshot_prompt = ""
@@ -739,6 +756,12 @@ class BabelConvertor:
 
                     if len(oneshot_pool) % 32 == 0:
                         print('-', end="", flush=True)
+
+        if self.heuristic != None:
+            self.request = get_heuristics(self.data_type, context_type="highlighted part")[self.heuristic]
+            self.end_prompt = get_end_prompt()[self.heuristic]
+        else:
+            self.end_prompt = ""
 
         for example in tqdm(self.dataset[self.split], leave=False):
             oneshot_prompt = ""
@@ -900,7 +923,7 @@ def get_arguments():
                         help="Please specifiy the task name.")
     # parser.add_argument("--structured_type", default="table", help="Please specify the type of the structured data.", type=str, choices=DATASETS.keys())
     parser.add_argument("--objective", default=["zero"], nargs="+",
-                        help="Please specify the parsing objective.")  # choices = ['zero', 'heur_{idx}', 'linear_{idx}']
+                        help="Please specify the parsing objective.")  # choices = ['zero', 'heur_{idx}', 'linear_{idx}', oneshot]
     parser.add_argument("--split", default=["validation"], nargs="+",
                         help="Please specify which split you want to generate/parse.")  # choices = ['train', 'validation', 'test']
     parser.add_argument("--linear_func", default="html", type=str,
@@ -909,6 +932,8 @@ def get_arguments():
                         help="Please specify whether to use_structure_mark.")
     parser.add_argument("--add_grammar", default=False, type=bool,
                         help="Please specify whether to add_grammar.")
+    parser.add_argument("--heuristic", default=None, type=str,
+                        help="Please specify which heuristic to use: [heur_8, heur_9]")
     parser.add_argument("--unified", default=False, action="store_true",
                         help="generate the unified file for babel input")
     parser.add_argument("--unified_file_output", default="./exps/downstream_tasks_20230113_log/", type=str)
@@ -930,7 +955,8 @@ def task_specific_babel_convertor():
                 # set up the instruction for the prompt design (prompt engineering-->role prompting)
                 args.instruction = f"You are a brilliant {structured_type} executor with the capbilities [retrieve], [input parsing], [metadata inference], [pattern understanding] who can understand the structural information of the {structured_type}.\n"
                 babel_convertor.set_split_obj(task, structured_type, split, obj, args.instruction,
-                                              args.linear_func, args.use_structure_mark, args.add_grammar
+                                              args.linear_func, args.use_structure_mark, args.add_grammar,
+                                              args.heuristic
                                               )
                 # save raw jsonl file
                 save_raw_jsonl(task, split)
