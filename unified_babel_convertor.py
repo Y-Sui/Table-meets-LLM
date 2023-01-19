@@ -31,7 +31,7 @@ class BabelConvertor:
         self.linearizer = StructuredDataLinearize()
         self.linearizer.end_prompt = ""
 
-    def fit_heuristics_constraints(self, sequence, max_token_length=4096):
+    def fit_heuristics_constraints(self, sequence, max_token_length=4000):
         tokenized_sequence = self.tokenizer(sequence).input_ids
         if len(tokenized_sequence) < max_token_length:  # the max seq_length of GPT-3
             return True
@@ -197,7 +197,7 @@ class BabelConvertor:
             content[
                 "prompt"] = self.instruct + table_info + "<request>\n" + self.request + "<statement>\n" + statement + self.end_prompt
             content["completion"] = "0" if label == "REFUTES" else "1"
-            if self.fit_heuristics_constraints("".join(content.values()), 4096 - 1024 - 500) is False:
+            if self.fit_heuristics_constraints("".join(content.values()), 4000 - 1024 - 500) is False:
                 continue
 
             content["prompt"] = oneshot_prompt + content["prompt"]
@@ -335,7 +335,7 @@ class BabelConvertor:
                 "prompt"] = self.instruct + table_info + "<request>\n" + self.request + "<choice>\n" + "\n".join(
                 ans_choices) + "\n</choice>\n" + self.end_prompt
             content["completion"] = label
-            if self.fit_heuristics_constraints("".join(content.values()), 4096 - 1024 - 500) is False:
+            if self.fit_heuristics_constraints("".join(content.values()), 4000 - 1024 - 500) is False:
                 continue
 
             content["prompt"] = oneshot_prompt + content["prompt"]
@@ -392,7 +392,7 @@ class BabelConvertor:
                 "question"] + "\n" + self.end_prompt
 
             content["completion"] = label
-            if self.fit_heuristics_constraints("".join(content.values()), 4096 - 1024 - 500) is False:
+            if self.fit_heuristics_constraints("".join(content.values()), 4000 - 1024 - 500) is False:
                 continue
 
             content["prompt"] = oneshot_prompt + content["prompt"]
@@ -564,7 +564,7 @@ class BabelConvertor:
             content[
                 "prompt"] = self.instruct + table_info + "<request>\n" + self.request + "<question>\n" + self.end_prompt
             content["completion"] = example["query"]
-            if self.fit_heuristics_constraints("".join(content.values()), 4096 - 1024 - 500) is False:
+            if self.fit_heuristics_constraints("".join(content.values()), 4000 - 1024 - 500) is False:
                 continue
 
             content["prompt"] = oneshot_prompt + content["prompt"]
@@ -616,7 +616,7 @@ class BabelConvertor:
             content[
                 "prompt"] = self.instruct + "\n" + table_info + "<request>\n" + self.request + "<question>\n" + question + self.end_prompt
             content["completion"] = answer
-            if self.fit_heuristics_constraints("".join(content.values()), 4096 - 1024 - 500) is False:
+            if self.fit_heuristics_constraints("".join(content.values()), 4000 - 1024 - 500) is False:
                 continue
 
             content["prompt"] = oneshot_prompt + content["prompt"]
@@ -651,8 +651,8 @@ class BabelConvertor:
                 if self.fit_heuristics_constraints(oneshot_prompt, max_token_length=1024):
                     oneshot_pool.append(oneshot_prompt)
 
-                    # if len(oneshot_pool) % 32 == 0:
-                    #     print('-', end="", flush=True)
+                    if len(oneshot_pool) % 32 == 0:
+                        print('-', end="", flush=True)
 
         for example in tqdm(self.dataset[self.split], leave=False):
             oneshot_prompt = ""
@@ -672,7 +672,7 @@ class BabelConvertor:
                 "prompt"] = self.instruct + "\n" + table_info + "<request>\n" + self.request + "<statement>\n" + statement + "\n" + self.end_prompt
             content["completion"] = str(label)
 
-            if self.fit_heuristics_constraints("".join(content.values()), 4096 - 1024 - 500) is False:
+            if self.fit_heuristics_constraints("".join(content.values()), 4000 - 1024 - 500) is False:
                 continue
 
             content["prompt"] = oneshot_prompt + content["prompt"]
@@ -732,7 +732,7 @@ class BabelConvertor:
                 except:
                     continue
                 oneshot_prompt = ("<example>\n" + oneshot_prompt +
-                                  "\nThe natural language description for each highlighted part of the table"
+                                  "\nThe natural language description for each highlighted part of the table:\n"
                                   + "\n".join(oneshot_example["final_sentences"]) + "\n</example>")
                 if self.fit_heuristics_constraints(oneshot_prompt, max_token_length=1024):
                     oneshot_pool.append(oneshot_prompt)
@@ -789,7 +789,7 @@ class BabelConvertor:
 
             content["prompt"] = self.instruct + table_info + "\n<request>\n" + self.request + self.end_prompt
             content["completion"] = "\n".join(final_questions)
-            if self.fit_heuristics_constraints("".join(content.values()), 4096 - 1024 - 500) is False:
+            if self.fit_heuristics_constraints("".join(content.values()), 4000 - 1024 - 500) is False:
                 continue
 
             content["prompt"] = oneshot_prompt + content["prompt"]

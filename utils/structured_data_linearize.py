@@ -118,11 +118,13 @@ class StructuredDataLinearize:
                 if self.structured_data_dict["title"] != "" else ""
 
             additional_knowledge += "\n" + "<context>\n" + "".join(self.structured_data_dict["context"]) \
-                if self.structured_data_dict["context"] != "" else "\n"
+                if self.structured_data_dict["context"] != "" else ""
 
             additional_knowledge += "\n" + "<caption>\n" + "".join(
-                "".join(self.structured_data_dict["table"]["caption"])) + "\n " \
-                if self.structured_data_dict["table"]["caption"] != "" else "\n"
+                "".join(self.structured_data_dict["table"]["caption"])) \
+                if self.structured_data_dict["table"]["caption"] != "" else ""
+            if additional_knowledge != "":
+                additional_knowledge += "\n"
         else:
             additional_knowledge = "".join(self.structured_data_dict["title"]) + "\n" + "".join(
                 self.structured_data_dict["context"]) + "\n" + "".join(
