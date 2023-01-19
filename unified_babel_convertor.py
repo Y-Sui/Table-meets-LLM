@@ -360,7 +360,7 @@ class BabelConvertor:
         oneshot_pool = []
 
         if 'oneshot' in self.objective:
-            while len(oneshot_pool) < 128:
+            while len(oneshot_pool) < 256:  # this is a bit slow
                 oneshot_example = self.get_one_shot_example()
                 if oneshot_example["table"] is None:
                     continue
@@ -497,10 +497,19 @@ class BabelConvertor:
 
     def retrieve_spider(self):
         def to_linearized_data(_example):
+            db_table_names = _example["db_table_names"]
+            db_column_names = _example["db_column_names"]["column_name"]
+            db_column_types = _example["db_column_types"]
+            # db_primary_keys = example["db_primary_keys"]["column_id"] + "\n"
+            # db_foreign_keys = example["db_foreign_keys"]["column_id"] + "\n"
+            cells = []
+            for i in range(len(db_column_names)):
+                cells.append(db_column_names[i] + "(" + db_column_types[i] + ")")
+
             data = {"title": "",
                     "context": "",
-                    "table": {"header": _example['db_table_names'],
-                              "rows": _example['table_data'],
+                    "table": {"header": db_table_names,
+                              "rows": cells,
                               "caption": ""
                               }
                     }
@@ -515,10 +524,10 @@ class BabelConvertor:
         if 'oneshot' in self.objective:
             while len(oneshot_pool) < 512:
                 oneshot_example = self.get_one_shot_example()
-
+                print(oneshot_example)
                 oneshot_prompt = to_linearized_data(oneshot_example)
                 oneshot_prompt = ("<example>\n" + oneshot_prompt + "<question>\n" + oneshot_example[
-                    "question"] + "\n" + self.end_prompt + "|".join(oneshot_example["answer_text"]) + "\n</example>")
+                    "question"] + "\n" + self.end_prompt + oneshot_example["query"] + "\n</example>")
                 if self.fit_heuristics_constraints(oneshot_prompt, max_token_length=1024):
                     oneshot_pool.append(oneshot_prompt)
 
@@ -534,23 +543,27 @@ class BabelConvertor:
             # TODO: convert to html
 
             content = {}
-            input = example["question"] + "\n"
-            label = example["query"]
-            db_table_names = example["db_table_names"]
-            db_column_names = example["db_column_names"]["column_name"]
-            db_column_types = example["db_column_types"]
-            # db_primary_keys = example["db_primary_keys"]["column_id"] + "\n"
-            # db_foreign_keys = example["db_foreign_keys"]["column_id"] + "\n"
-            cells = []
-            for i in range(len(db_column_names)):
-                cells.append(db_column_names[i] + "|" + db_column_types[i])
+            # input = example["question"] + "\n"
+            # label = example["query"]
+            # db_table_names = example["db_table_names"]
+            # db_column_names = example["db_column_names"]["column_name"]
+            # db_column_types = example["db_column_types"]
+            # # db_primary_keys = example["db_primary_keys"]["column_id"] + "\n"
+            # # db_foreign_keys = example["db_foreign_keys"]["column_id"] + "\n"
+            # cells = []
+            # for i in range(len(db_column_names)):
+            #     cells.append(db_column_names[i] + "|" + db_column_types[i])
+            #
+            # # content["prompt"] = self.instruct + "<request>\n" + self.request + "<question>\n" + input + "<database>\n" + "|".join(
+            # #     db_table_names) + "\n".join(cells) + "<primary_keys>\n" + db_primary_keys + "<foreign_keys>\n" + db_foreign_keys + self.end_prompt
+            # content[
+            #     "prompt"] = self.instruct + "<request>\n" + self.request + "<question>\n" + input + "<database>\n" + "|".join(
+            #     db_table_names) + "\n" + "\n".join(cells) + self.end_prompt
 
-            # content["prompt"] = self.instruct + "<request>\n" + self.request + "<question>\n" + input + "<database>\n" + "|".join(
-            #     db_table_names) + "\n".join(cells) + "<primary_keys>\n" + db_primary_keys + "<foreign_keys>\n" + db_foreign_keys + self.end_prompt
+            table_info = to_linearized_data(example)
             content[
-                "prompt"] = self.instruct + "<request>\n" + self.request + "<question>\n" + input + "<database>\n" + "|".join(
-                db_table_names) + "\n" + "\n".join(cells) + self.end_prompt
-            content["completion"] = label
+                "prompt"] = self.instruct + table_info + "<request>\n" + self.request + "<question>\n" + self.end_prompt
+            content["completion"] = example["query"]
             if self.fit_heuristics_constraints("".join(content.values()), 4096 - 1024 - 500) is False:
                 continue
 
@@ -669,45 +682,33 @@ class BabelConvertor:
     def retrieve_totto(self):
         def to_linearized_data(_example):
             highlight_idx = _example["highlighted_cells"]
-            tables = _example["table"]
-            header_info, table_info = [], []
+            table = _example["table"]
             highlight_header, highlight_info = [], []
-            for r_idx in range(len(tables)):
-                # if r_idx != 0:
-                #     table_info.append("\n")
+
+            table_rows = []
+            for r_idx in range(len(table)):
                 row = []
-                for c_idx in range(len(tables[r_idx])):
+                for c_idx in range(len(table[r_idx])):
                     # TODO: here a bug occurs that header and table_info don't have same number of columns
-                    if r_idx == 0:
-                        if tables[r_idx][c_idx]["column_span"] == 1:
-                            header_info.append(tables[r_idx][c_idx]["value"])
-                        else:
-                            for time in range(tables[r_idx][c_idx]["column_span"]):
-                                header_info.append(tables[r_idx][c_idx]["value"])
-                    else:
-                        if tables[r_idx][c_idx]["column_span"] == 1:
-                            row.append(tables[r_idx][c_idx]["value"])
-                        else:
-                            for time in range(tables[r_idx][c_idx]["column_span"]):
-                                row.append(tables[r_idx][c_idx]["value"])
+                    # Investigation: it seems some table are illegal
+                    row.extend([table[r_idx][c_idx]["value"]] * table[r_idx][c_idx]["column_span"])
 
-                if r_idx != 0:
-                    table_info.append(row)
+                table_rows.append(row)
 
-            parsed_header = list(x.replace("|", "") for x in header_info)
+            parsed_header = list(x.replace("|", "") for x in table_rows[0])
             try:
                 for h_idx in highlight_idx:
                     highlight_info.append(
-                        str(h_idx) + ": " + str(parsed_header[h_idx[1]]) + "|" + tables[h_idx[0]][h_idx[1]][
+                        str(h_idx) + ": " + str(parsed_header[h_idx[1]]) + "|" + table[h_idx[0]][h_idx[1]][
                             "value"] + "\n")
             except:
                 for h_idx in highlight_idx:
-                    highlight_info.append(str(h_idx) + ": " + "-" + "|" + tables[h_idx[0]][h_idx[1]]["value"] + "\n")
+                    highlight_info.append(str(h_idx) + ": " + "-" + "|" + table[h_idx[0]][h_idx[1]]["value"] + "\n")
 
             data = {"title": _example['table_page_title'],
                     "context": "",
-                    "table": {"header": header_info,
-                              "rows": table_info,
+                    "table": {"header": table_rows[0],
+                              "rows": table_rows[1:],
                               "caption": _example['table_section_title']
                               }
                     }
@@ -716,15 +717,23 @@ class BabelConvertor:
                                                            self.use_structure_mark,
                                                            self.add_grammar,
                                                            False, data)
-            return ret + "<Highlighted>\n" + "".join(highlight_info)
+
+            if len(highlight_info) > 0:
+                return ret + "<Highlighted>\n" + "".join(highlight_info)
+            else:
+                return ret
 
         oneshot_pool = []
         if 'oneshot' in self.objective:
             while len(oneshot_pool) < 512:
                 oneshot_example = self.get_one_shot_example()
-                oneshot_prompt = to_linearized_data(oneshot_example)
-                oneshot_prompt = ("<example>\n" + oneshot_prompt + "\n" + self.end_prompt + "\n".join(
-                    oneshot_example["final_sentences"]) + "\n</example>")
+                try:
+                    oneshot_prompt = to_linearized_data(oneshot_example)
+                except:
+                    continue
+                oneshot_prompt = ("<example>\n" + oneshot_prompt +
+                                  "\nThe natural language description for each highlighted part of the table"
+                                  + "\n".join(oneshot_example["final_sentences"]) + "\n</example>")
                 if self.fit_heuristics_constraints(oneshot_prompt, max_token_length=1024):
                     oneshot_pool.append(oneshot_prompt)
 
@@ -732,6 +741,11 @@ class BabelConvertor:
                         print('-', end="", flush=True)
 
         for example in tqdm(self.dataset[self.split], leave=False):
+            oneshot_prompt = ""
+            if self.split != 'train' and 'oneshot' in self.objective:
+                idx = np.random.randint(0, len(oneshot_pool))
+                oneshot_prompt = oneshot_pool[idx] + "\n"
+
             content = {}
             # highlight_idx = example["highlighted_cells"]
             final_questions = example["final_sentences"]
@@ -768,12 +782,17 @@ class BabelConvertor:
             #         highlight_info.append(str(h_idx) + ": " + "-" + "|" + tables[h_idx[0]][h_idx[1]]["value"] + "\n")
             # table_info = "<Page>\n" + table_page_title + "\n" + "<Table>\n" + table_section_title + "\n" + "<Cells>\n" + "".join(
             #     header_info) + "\n" + "".join(table_info) + "\n" + "<Highlighted>\n" + "".join(highlight_info) + "\n"
+            try:
+                table_info = to_linearized_data(example)
+            except:
+                continue
 
-            table_info = to_linearized_data(example)
             content["prompt"] = self.instruct + table_info + "\n<request>\n" + self.request + self.end_prompt
             content["completion"] = "\n".join(final_questions)
             if self.fit_heuristics_constraints("".join(content.values()), 4096 - 1024 - 500) is False:
                 continue
+
+            content["prompt"] = oneshot_prompt + content["prompt"]
             self.prompt_input.append(content)
         return self.prompt_input
 
