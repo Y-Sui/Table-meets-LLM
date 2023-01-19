@@ -5,7 +5,8 @@ import jsonlines
 import os
 
 Task = "feverous"
-dataset = load_dataset('../UnifiedSKG/feverous.py', ignore_verifications=True)
+dataset = load_dataset('../unifiedSKG/feverous.py', ignore_verifications=True)
+print(dataset["validation"])
 print(dataset["validation"][0])
 
 Heuristics = {

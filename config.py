@@ -13,7 +13,7 @@ MODELS = {
 }
 
 TASKS = {
-    "table": ["cell_lookup", "cell_lookup_pos", "column_retrieval", "row_retrieval", "scope_detection", "span_detection"],
+    "table": ["table_partition", "row_retrieval", "cell_lookup", "cell_lookup_pos", "column_retrieval", "size_detection", "merged_cell_detection"],
     "form": ["block_dependency", "block_traversal"]
 }
 

@@ -102,7 +102,7 @@ def retrieve_unique_column_span(lst: list):
     for j, cell in enumerate(lst[0]):  # only consider the header (field)
         if cell['is_header'] is True and cell['column_span'] > 1:
             pair.append((j, cell['value']))
-    return pair if pair != [] else 'None'
+    return pair if pair != [] else None
 
 
 def retrieve_swap_tables(lst: list, start_index: int, end_index: int):
@@ -188,6 +188,10 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
                         self.mode = f"{self.linearize_function}_0_1_3"
                     elif self.use_partition_mark and self.use_format_explanation:
                         self.mode = f"{self.linearize_function}_0_1"
+                    elif self.use_partition_mark and self.use_role_prompting:
+                        self.mode = f"{self.linearize_function}_0_3"
+                    elif self.use_format_explanation and self.use_role_prompting:
+                        self.mode = f"{self.linearize_function}_1_3"
                     elif self.use_role_prompting:
                         self.mode = f"{self.linearize_function}_3"
                     elif self.use_partition_mark:
@@ -321,11 +325,11 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
 
         # save as jsonl (tabfact)
         logging.info(f"{self.dataset_name} tasks {self.specific_objective} datasets have been generated..")
-        save_table_jsonl(self.dataset_name, "cell_lookup", self.mode, self.random_sampling(self.cell_lookup_pair))
-        save_table_jsonl(self.dataset_name, "cell_lookup_pos", self.mode, self.random_sampling(self.cell_lookup_pos_pair))
-        save_table_jsonl(self.dataset_name, "row_retrieval", self.mode, self.random_sampling(self.row_pair))
-        save_table_jsonl(self.dataset_name, "column_retrieval", self.mode, self.random_sampling(self.column_pair))
-        save_table_jsonl(self.dataset_name, "size_detection", self.mode, self.random_sampling(self.size_pair))
+        # save_table_jsonl(self.dataset_name, "cell_lookup", self.mode, self.random_sampling(self.cell_lookup_pair))
+        # save_table_jsonl(self.dataset_name, "cell_lookup_pos", self.mode, self.random_sampling(self.cell_lookup_pos_pair))
+        # save_table_jsonl(self.dataset_name, "row_retrieval", self.mode, self.random_sampling(self.row_pair))
+        # save_table_jsonl(self.dataset_name, "column_retrieval", self.mode, self.random_sampling(self.column_pair))
+        # save_table_jsonl(self.dataset_name, "size_detection", self.mode, self.random_sampling(self.size_pair))
         save_table_jsonl(self.dataset_name, "table_partition", self.mode, self.random_sampling(self.table_partition))
 
     def retrieval_sqa_info(self):
@@ -426,11 +430,11 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
 
         # save as jsonl (sqa)
         logging.info(f"{self.dataset_name} tasks {self.specific_objective} datasets have been generated..")
-        save_table_jsonl(self.dataset_name, "cell_lookup", self.mode, self.random_sampling(self.cell_lookup_pair))
-        save_table_jsonl(self.dataset_name, "cell_lookup_pos", self.mode, self.random_sampling(self.cell_lookup_pos_pair))
-        save_table_jsonl(self.dataset_name, "row_retrieval", self.mode, self.random_sampling(self.row_pair))
-        save_table_jsonl(self.dataset_name, "column_retrieval", self.mode, self.random_sampling(self.column_pair))
-        save_table_jsonl(self.dataset_name, "size_detection", self.mode, self.random_sampling(self.size_pair))
+        # save_table_jsonl(self.dataset_name, "cell_lookup", self.mode, self.random_sampling(self.cell_lookup_pair))
+        # save_table_jsonl(self.dataset_name, "cell_lookup_pos", self.mode, self.random_sampling(self.cell_lookup_pos_pair))
+        # save_table_jsonl(self.dataset_name, "row_retrieval", self.mode, self.random_sampling(self.row_pair))
+        # save_table_jsonl(self.dataset_name, "column_retrieval", self.mode, self.random_sampling(self.column_pair))
+        # save_table_jsonl(self.dataset_name, "size_detection", self.mode, self.random_sampling(self.size_pair))
         save_table_jsonl(self.dataset_name, "table_partition", self.mode, self.random_sampling(self.table_partition))
 
     def retrieval_hybridqa_info(self):
@@ -530,11 +534,11 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
 
         # save as jsonl (hybridqa)
         logging.info(f"{self.dataset_name} tasks {self.specific_objective} datasets have been generated..")
-        save_table_jsonl(self.dataset_name, "cell_lookup", self.mode, self.random_sampling(self.cell_lookup_pair))
-        save_table_jsonl(self.dataset_name, "cell_lookup_pos", self.mode, self.random_sampling(self.cell_lookup_pos_pair))
-        save_table_jsonl(self.dataset_name, "row_retrieval", self.mode, self.random_sampling(self.row_pair))
-        save_table_jsonl(self.dataset_name, "column_retrieval", self.mode, self.random_sampling(self.column_pair))
-        save_table_jsonl(self.dataset_name, "size_detection", self.mode, self.random_sampling(self.size_pair))
+        # save_table_jsonl(self.dataset_name, "cell_lookup", self.mode, self.random_sampling(self.cell_lookup_pair))
+        # save_table_jsonl(self.dataset_name, "cell_lookup_pos", self.mode, self.random_sampling(self.cell_lookup_pos_pair))
+        # save_table_jsonl(self.dataset_name, "row_retrieval", self.mode, self.random_sampling(self.row_pair))
+        # save_table_jsonl(self.dataset_name, "column_retrieval", self.mode, self.random_sampling(self.column_pair))
+        # save_table_jsonl(self.dataset_name, "size_detection", self.mode, self.random_sampling(self.size_pair))
         save_table_jsonl(self.dataset_name, "table_partition", self.mode, self.random_sampling(self.table_partition))
 
     def retrieval_feverous_info(self):
@@ -634,11 +638,11 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
 
         # save as jsonl (feverous)
         logging.info(f"{self.dataset_name} tasks {self.specific_objective} datasets have been generated..")
-        save_table_jsonl(self.dataset_name, "cell_lookup", self.mode, self.random_sampling(self.cell_lookup_pair))
-        save_table_jsonl(self.dataset_name, "cell_lookup_pos", self.mode, self.random_sampling(self.cell_lookup_pos_pair))
-        save_table_jsonl(self.dataset_name, "row_retrieval", self.mode, self.random_sampling(self.row_pair))
-        save_table_jsonl(self.dataset_name, "column_retrieval", self.mode, self.random_sampling(self.column_pair))
-        save_table_jsonl(self.dataset_name, "size_detection", self.mode, self.random_sampling(self.size_pair))
+        # save_table_jsonl(self.dataset_name, "cell_lookup", self.mode, self.random_sampling(self.cell_lookup_pair))
+        # save_table_jsonl(self.dataset_name, "cell_lookup_pos", self.mode, self.random_sampling(self.cell_lookup_pos_pair))
+        # save_table_jsonl(self.dataset_name, "row_retrieval", self.mode, self.random_sampling(self.row_pair))
+        # save_table_jsonl(self.dataset_name, "column_retrieval", self.mode, self.random_sampling(self.column_pair))
+        # save_table_jsonl(self.dataset_name, "size_detection", self.mode, self.random_sampling(self.size_pair))
         save_table_jsonl(self.dataset_name, "table_partition", self.mode, self.random_sampling(self.table_partition))
 
     def retrieval_totoo_info(self):
@@ -775,11 +779,11 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
 
         # save as jsonl (totto)
         logging.info(f"{self.dataset_name} tasks {self.specific_objective} datasets have been generated..")
-        save_table_jsonl(self.dataset_name, "cell_lookup", self.mode, self.random_sampling(self.cell_lookup_pair))
-        save_table_jsonl(self.dataset_name, "cell_lookup_pos", self.mode, self.random_sampling(self.cell_lookup_pos_pair))
-        save_table_jsonl(self.dataset_name, "row_retrieval", self.mode, self.random_sampling(self.row_pair))
-        save_table_jsonl(self.dataset_name, "column_retrieval", self.mode, self.random_sampling(self.column_pair))
-        save_table_jsonl(self.dataset_name, "size_detection", self.mode, self.random_sampling(self.size_pair))
+        # save_table_jsonl(self.dataset_name, "cell_lookup", self.mode, self.random_sampling(self.cell_lookup_pair))
+        # save_table_jsonl(self.dataset_name, "cell_lookup_pos", self.mode, self.random_sampling(self.cell_lookup_pos_pair))
+        # save_table_jsonl(self.dataset_name, "row_retrieval", self.mode, self.random_sampling(self.row_pair))
+        # save_table_jsonl(self.dataset_name, "column_retrieval", self.mode, self.random_sampling(self.column_pair))
+        # save_table_jsonl(self.dataset_name, "size_detection", self.mode, self.random_sampling(self.size_pair))
         save_table_jsonl(self.dataset_name, "merged_cell_detection", self.mode, self.random_sampling(self.column_span_pair))
         save_table_jsonl(self.dataset_name, "table_partition", self.mode, self.random_sampling(self.table_partition))
 
@@ -875,15 +879,18 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
         ans_detection_pair = {}
         # generate span ground_truth
         column_idx_list = retrieve_unique_column_span(columns)
-        column_idx_parsed = []
-        for i in column_idx_list:
-            column_idx_parsed.append(i[0])
-        self.request = f"What is the index of the column which span is over 1. use | to split the answer (e.g., 3 | 4), the column index starts from 0 \n"
+        self.request = f"What is the column index of the cell which span is over 1. use | to split the answer (e.g., 3 | 4), the column index starts from 0. If there's no answer, return None \n"
         if self.use_role_prompting:
             ans_detection_pair["prompt"] = self.instruction + schema_knowledge + "<request>\n" + self.request + self.end_prompt
         else:
             ans_detection_pair["prompt"] = schema_knowledge + "<request>\n" + self.request + self.end_prompt
-        ans_detection_pair["completion"] = " | ".join([str(x) for x in column_idx_parsed])
+        if column_idx_list != None:
+            column_idx_parsed = []
+            for i in column_idx_list:
+                column_idx_parsed.append(i[0])
+            ans_detection_pair["completion"] = " | ".join([str(x) for x in column_idx_parsed])
+        else:
+            ans_detection_pair["completion"] = "None"
         return ans_detection_pair
 
     def table_partition_generation(self, rows, schema_knowledge):
@@ -899,7 +906,7 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
         except:
             head_token = ""
             end_token = ""
-        self.request = f"What is the first token of the given table? What is the end token of the given table? Answer questions one by one and use | to split the answer.\n"
+        self.request = f"What is the first token (cell value instead of separator |) of the given table? What is the end token (cell value instead of separator |) of the given table? Answer questions one by one and use | to split the answer.\n"
         ana_detection_pair["prompt"] = self.instruction + "<request>\n" + self.request + schema_knowledge
         ana_detection_pair["completion"] = str(head_token) + "|" + str(end_token)
         return ana_detection_pair
