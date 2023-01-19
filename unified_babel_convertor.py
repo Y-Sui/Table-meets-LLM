@@ -44,17 +44,17 @@ class BabelConvertor:
         return training_set[idx]
 
     def set_split_obj(self, task: str, structured_type: str, split: str, objective: List[str], instruction: str,
-                      linearize_func: str, use_structure_mark: bool, add_grammar: bool):
+                      linearize_func: str, use_partition_mark: bool, use_format_explanation: bool, add_table_size: bool):
         self.prompt_input = []  # refresh when init set_split_obj
         self.split = split
         self.objective = objective
         self.task = task
         self.data_type = structured_type
         self.instruct = instruction
-
         self.linearize_func = linearize_func
-        self.use_structure_mark = use_structure_mark
-        self.add_grammar = add_grammar
+        self.use_partition_mark = use_partition_mark
+        self.use_format_explanation = use_format_explanation
+        self.add_table_size = add_table_size
         try:
             self.dataset = load_dataset(f"./scripts/unifiedSKG/{task}.py", ignore_verifications=True)
         except:
@@ -80,70 +80,16 @@ class BabelConvertor:
         self.flag = 0  # no heuristics generation (zero-shot)
         self.request = get_requests(self.task)
         self.end_prompt = "The answer is \n"
-        if objective.__contains__("heur"):
+        if self.objective.__contains__("heur"):
             self.request = get_heuristics(self.data_type)[objective]
             self.end_prompt = "The structural information is \n"
             self.flag = 1
 
     def retrieve_sample_list(self):
-        dict = {"feverous": self.retrieve_feverous, "dart": self.retrieve_dart, "cosql": self.retrieve_cosql,
-                "gittables": self.retrieve_gittables, "hybridqa": self.retrieve_hybridqa,
-                "logic2text": self.retrieve_logic2text, "sql2text": self.retrieve_sql2text,
-                "multi_woz_dia": self.retrieve_multi_woz_dia, "multi_woz_intent": self.retrieve_multi_woz_intent,
-                "spider": self.retrieve_spider, "totto": self.retrieve_totto, "tabfact": self.retrieve_tabfact,
-                "sqa": self.retrieve_sqa, "webqsp": self.retrieve_webqsp,
-                "formlm_opt": self.retrieve_formlm_opt_recommend,
-                "formlm_qa": self.retrieve_formlm_qa_recommend,
-                "formlm_block_type": self.retrieve_formlm_block_type_classification}
+        dict = {"feverous": self.retrieve_feverous, "hybridqa": self.retrieve_hybridqa, "totto": self.retrieve_totto, "tabfact": self.retrieve_tabfact,
+                "sqa": self.retrieve_sqa}
         return dict[self.task]()
 
-    # def retrieve_formlm(self):
-    #     linearized_form = [] # linearized_form
-    #     for example in self.dataset:
-    #          linearized_form.append(self.form_linearizer.linearize_form(example))
-
-    def retrieve_formlm_opt_recommend(self):
-        """
-        formlm subtasks --> options recommendation
-        """
-        for example in self.dataset:
-            inputs, targets = self.form_linearizer.linearize_form_for_option_recommend(example)
-            for i in range(len(inputs)):
-                content = {"prompt": self.request + inputs[i] + "\n" + self.end_prompt,
-                           "completion": targets[i]}
-                if self.fit_heuristics_constraints("".join(content.values())) is False:
-                    continue
-                self.prompt_input.append(content)
-        return self.prompt_input
-
-    def retrieve_formlm_qa_recommend(self):
-        """
-        formlm subtask --> question recommendation
-        """
-        for example in self.dataset:
-            inputs, targets = self.form_linearizer.linearize_form_for_question_recommend(example, with_context=True)
-            for i in range(len(inputs)):
-                content = {"prompt": self.request + inputs[i] + "\n" + self.end_prompt,
-                           "completion": targets[i]}
-                if self.fit_heuristics_constraints("".join(content.values())) is False:
-                    continue
-                self.prompt_input.append(content)
-        return self.prompt_input
-
-    def retrieve_formlm_block_type_classification(self):
-        """
-        formlm subtask --> block type classification
-        """
-        for example in self.dataset:
-            inputs, targets = self.form_linearizer.linearize_form_for_block_type_classification(example,
-                                                                                                with_context=True)
-            for i in range(len(inputs)):
-                content = {"prompt": self.request + inputs[i] + "\n" + self.end_prompt,
-                           "completion": targets[i]}
-                if self.fit_heuristics_constraints("".join(content.values())) is False:
-                    continue
-                self.prompt_input.append(content)
-        return self.prompt_input
 
     def retrieve_feverous(self):
         def to_linearized_data(_example):
@@ -155,9 +101,9 @@ class BabelConvertor:
                               }
                     }
             ret = self.linearizer.retrieve_linear_function(self.linearize_func,
-                                                           self.use_structure_mark,
-                                                           self.add_grammar,
-                                                           False, data)
+                                                           self.use_partition_mark,
+                                                           self.use_format_explanation,
+                                                           False, self.add_table_size, data)
             return ret
 
         oneshot_pool = []
@@ -204,143 +150,6 @@ class BabelConvertor:
             self.prompt_input.append(content)
         return self.prompt_input
 
-    def retrieve_dart(self):
-        for example in self.dataset[self.split]:
-            content = {}
-            # Scrape the desired content from the example
-            input = example["tripleset"]
-            input_seq = []
-            if input is None:
-                continue
-            for i in range(len(input)):
-                input_seq.append(input[i][0] + " | " + input[i][1] + " | " + input[i][2] + "\n")
-            input_seq = "".join(input_seq) + "\n"
-            label = example["annotations"]["text"][0]
-            content[
-                "prompt"] = self.instruct + "<request>\n" + self.request + "<RDF_Triplets>\n" + input_seq + self.end_prompt
-            content["completion"] = label
-            if self.fit_heuristics_constraints("".join(content.values())) is False:
-                continue
-            self.prompt_input.append(content)
-        return self.prompt_input
-
-    def retrieve_cosql(self):
-        for example in self.dataset[self.split]:
-            content = {}
-            # Scrape the desired content from the example
-            query = example["query"]
-            utterance = example["utterances"][0] + "\n"
-            db_table_names = "<db_table_names>\n" + "|".join(example["db_table_names"]) + "\n"
-            db_column_names = "<db_column_names>\n" + "|".join(
-                example["db_column_names"]["column_name"]) + "\n<db_column_type>\n" + "|".join(
-                example["db_column_types"]) + "\n"
-            db_primary_keys = "<primary_key>\n" + "|".join(
-                list(map(lambda x: str(x), example["db_primary_keys"]["column_id"]))) + "\n"
-            db_foreign_keys = "<foreign_key>\n" + "|".join(
-                list(map(lambda x: str(x), example["db_foreign_keys"]["column_id"]))) + "\n"
-            db_info = db_table_names + db_column_names + db_primary_keys + db_foreign_keys
-            content[
-                "prompt"] = self.instruct + "<request>\n" + self.request + "<utterance>\n" + utterance + db_info + self.end_prompt
-            content["completion"] = query
-            if self.fit_heuristics_constraints("".join(content.values())) is False:
-                continue
-            self.prompt_input.append(content)
-        return self.prompt_input
-
-    def retrieve_gittables(self):
-        ans_choices = ["abstract", "action", "author", "category", "city", "class",
-                       "code", "color", "comment", "content type", "country", "date issued",
-                       "depth", "description", "duration", "email", "end time", "event",
-                       "file format", "gender", "height", "id", "interaction type", "language",
-                       "line", "location", "manufacturer", "members", "message", "name",
-                       "object", "order number", "parent", "postal code", "price", "producer",
-                       "product", "project", "purchase date", "rating", "role", "role name",
-                       "school", "serial number", "series", "size", "start time", "state",
-                       "status", "step", "target", "text", "time", "title", "tool", "url",
-                       "value", "version", "width"]
-
-        def to_linearized_data(_example):
-            data = {"title": "",
-                    "context": "",
-                    "table": {"header": _example['header'],
-                              "rows": _example['rows'],
-                              "caption": ""
-                              }
-                    }
-            ret = self.linearizer.retrieve_linear_function(self.linearize_func,
-                                                           self.use_structure_mark,
-                                                           self.add_grammar,
-                                                           False, data)
-            return ret
-
-        oneshot_pool = []
-
-        if 'oneshot' in self.objective:
-            while len(oneshot_pool) < 512:
-                oneshot_example = self.get_one_shot_example()
-                table_id = oneshot_example["table_id"]
-                column_text = oneshot_example["column_text"]
-                if column_text is None or table_id is None:
-                    continue
-
-                column_text = column_text.replace('nan', '"nan"')
-
-                try:
-                    columns = eval(column_text)
-                except:
-                    continue
-                columns = [[cell] for cell in columns]
-
-                oneshot_example['header'] = [""]
-                oneshot_example['rows'] = columns
-
-                oneshot_prompt = to_linearized_data(oneshot_example)
-                label = oneshot_example["annotation_label"]
-
-                oneshot_prompt = (
-                        "<example>\n" + oneshot_prompt + "The annotation for this example is\n" + label + "\n</example>")
-                if self.fit_heuristics_constraints(oneshot_prompt, max_token_length=1024):
-                    oneshot_pool.append(oneshot_prompt)
-
-                    # if len(oneshot_pool) % 32 == 0:
-                    #     print('-', end="", flush=True)
-
-        for example in self.dataset[self.split]:
-            oneshot_prompt = ""
-            if self.split != 'train' and 'oneshot' in self.objective:
-                idx = np.random.randint(0, len(oneshot_pool))
-                oneshot_prompt = oneshot_pool[idx] + "\n"
-
-            content = {}
-            # Scrape the desired content from the example
-            table_id = example["table_id"]
-            column_text = example["column_text"]
-            if column_text is None or table_id is None:
-                continue
-
-            column_text = column_text.replace('nan', '"nan"')
-            try:
-                columns = eval(column_text)
-            except:
-                continue
-
-            columns = [[cell] for cell in columns]
-
-            example['header'] = [""]
-            example['rows'] = columns
-
-            table_info = to_linearized_data(example)
-            label = example["annotation_label"]
-            content[
-                "prompt"] = self.instruct + table_info + "<request>\n" + self.request + "<choice>\n" + "\n".join(
-                ans_choices) + "\n</choice>\n" + self.end_prompt
-            content["completion"] = label
-            if self.fit_heuristics_constraints("".join(content.values()), 4000 - 1024 - 500) is False:
-                continue
-
-            content["prompt"] = oneshot_prompt + content["prompt"]
-            self.prompt_input.append(content)
-        return self.prompt_input
 
     def retrieve_hybridqa(self):
         def to_linearized_data(_example):
@@ -352,9 +161,9 @@ class BabelConvertor:
                               }
                     }
             ret = self.linearizer.retrieve_linear_function(self.linearize_func,
-                                                           self.use_structure_mark,
-                                                           self.add_grammar,
-                                                           False, data)
+                                                           self.use_partition_mark,
+                                                           self.use_format_explanation,
+                                                           False, self.add_table_size, data)
             return ret
 
         oneshot_pool = []
@@ -399,177 +208,6 @@ class BabelConvertor:
             self.prompt_input.append(content)
         return self.prompt_input
 
-    def retrieve_logic2text(self):
-        for example in self.dataset[self.split]:
-            content = {}
-            # Scrape the desired content from the example
-            logic_str = example["logic_str"] + "\n"
-            question = example["question"]
-            caption = example["table"]["caption"] + "\n"
-            header = "|".join(example["table"]["header"]) + "\n"
-            cells = []
-            for i in range(len(example["table"]["content"])):
-                cells.append("|".join(example["table"]["content"][i]) + "\n")
-            cells = "".join(cells) + "\n"
-            table_info = "<caption>\n" + caption + "<table>\n" + header + cells
-            content[
-                "prompt"] = self.instruct + "<request>\n" + self.request + "<logic_form>\n" + logic_str + table_info + self.end_prompt
-            content["completion"] = question
-            if self.fit_heuristics_constraints("".join(content.values())) is False:
-                continue
-            self.prompt_input.append(content)
-        return self.prompt_input
-
-    def retrieve_sql2text(self):
-        for example in self.dataset[self.split]:
-            content = {}
-            # Scrape the desired content from the example
-            input = example["query"] + "\n"
-            if input is None:
-                continue
-            label = example["question"]
-            content["prompt"] = self.instruct + "<request>\n" + self.request + "<sql>\n" + input + self.end_prompt
-            content["completion"] = label
-            if self.fit_heuristics_constraints("".join(content.values())) is False:
-                continue
-            self.prompt_input.append(content)
-        return self.prompt_input
-
-    def retrieve_multi_woz_dia(self):
-        for example in self.dataset[self.split]:
-            content = {}
-            utterance = example["turns"]["utterance"]
-            for i in range(len(utterance)):
-                if i % 2 == 0:
-                    utterance[i] = "User: " + utterance[i]
-                else:
-                    utterance[i] = "System: " + utterance[i]
-            dialogues = example["turns"]["dialogue_acts"]
-            frames = example["turns"]["frames"]
-            activate_intents = []  # user intents
-            dialogue_acts = []  # dialogue intents for each utterance
-            for i in range(len(frames)):
-                for j in range(len(frames[i]['state'])):
-                    active_intent = frames[i]['state'][j]["active_intent"]
-                    if active_intent != "None":
-                        activate_intents.append(active_intent)
-            activate_intents = get_unique_items(activate_intents)
-            for i in range(len(dialogues)):
-                dialogue_act = "&".join(dialogues[i]["dialog_act"]["act_type"])
-                dialogue_acts.append(dialogue_act)
-            dia_info = "<dialogue>\n" + "\n".join(utterance) + "\n"
-            content["prompt"] = self.instruct + "<request>\n" + self.request + dia_info + self.end_prompt
-            content["completion"] = "\n".join(dialogue_acts)
-            if self.fit_heuristics_constraints("".join(content.values())) is False:
-                continue
-            self.prompt_input.append(content)
-        return self.prompt_input
-
-    def retrieve_multi_woz_intent(self):
-        for example in self.dataset[self.split]:
-            content = {}
-            utterance = example["turns"]["utterance"]
-            for i in range(len(utterance)):
-                if i % 2 == 0:
-                    utterance[i] = "User: " + utterance[i]
-                else:
-                    utterance[i] = "System: " + utterance[i]
-            dialogues = example["turns"]["dialogue_acts"]
-            frames = example["turns"]["frames"]
-            activate_intents = []  # user intents
-            dialogue_acts = []  # dialogue intents for each utterance
-            for i in range(len(frames)):
-                for j in range(len(frames[i]['state'])):
-                    active_intent = frames[i]['state'][j]["active_intent"]
-                    if active_intent != "None":
-                        activate_intents.append(active_intent)
-            activate_intents = get_unique_items(activate_intents)
-            for i in range(len(dialogues)):
-                dialogue_act = "&".join(dialogues[i]["dialog_act"]["act_type"])
-                dialogue_acts.append(dialogue_act)
-            dia_info = "<dialogue>\n" + "\n".join(utterance) + "\n"
-            content["prompt"] = self.instruct + "<request>\n" + self.request + dia_info + self.end_prompt
-            content["completion"] = "\n".join(activate_intents)
-            if self.fit_heuristics_constraints("".join(content.values())) is False:
-                continue
-            self.prompt_input.append(content)
-        return self.prompt_input
-
-    def retrieve_spider(self):
-        def to_linearized_data(_example):
-            db_table_names = _example["db_table_names"]
-            db_column_names = _example["db_column_names"]["column_name"]
-            db_column_types = _example["db_column_types"]
-            # db_primary_keys = example["db_primary_keys"]["column_id"] + "\n"
-            # db_foreign_keys = example["db_foreign_keys"]["column_id"] + "\n"
-            cells = []
-            for i in range(len(db_column_names)):
-                cells.append(db_column_names[i] + "(" + db_column_types[i] + ")")
-
-            data = {"title": "",
-                    "context": "",
-                    "table": {"header": db_table_names,
-                              "rows": cells,
-                              "caption": ""
-                              }
-                    }
-            ret = self.linearizer.retrieve_linear_function(self.linearize_func,
-                                                           self.use_structure_mark,
-                                                           self.add_grammar,
-                                                           False, data)
-            return ret
-
-        oneshot_pool = []
-
-        if 'oneshot' in self.objective:
-            while len(oneshot_pool) < 512:
-                oneshot_example = self.get_one_shot_example()
-                print(oneshot_example)
-                oneshot_prompt = to_linearized_data(oneshot_example)
-                oneshot_prompt = ("<example>\n" + oneshot_prompt + "<question>\n" + oneshot_example[
-                    "question"] + "\n" + self.end_prompt + oneshot_example["query"] + "\n</example>")
-                if self.fit_heuristics_constraints(oneshot_prompt, max_token_length=1024):
-                    oneshot_pool.append(oneshot_prompt)
-
-                    # if len(oneshot_pool) % 32 == 0:
-                    #     print('-', end="", flush=True)
-
-        for example in self.dataset[self.split]:
-            oneshot_prompt = ""
-            if self.split != 'train' and 'oneshot' in self.objective:
-                idx = np.random.randint(0, len(oneshot_pool))
-                oneshot_prompt = oneshot_pool[idx] + "\n"
-
-            # TODO: convert to html
-
-            content = {}
-            # input = example["question"] + "\n"
-            # label = example["query"]
-            # db_table_names = example["db_table_names"]
-            # db_column_names = example["db_column_names"]["column_name"]
-            # db_column_types = example["db_column_types"]
-            # # db_primary_keys = example["db_primary_keys"]["column_id"] + "\n"
-            # # db_foreign_keys = example["db_foreign_keys"]["column_id"] + "\n"
-            # cells = []
-            # for i in range(len(db_column_names)):
-            #     cells.append(db_column_names[i] + "|" + db_column_types[i])
-            #
-            # # content["prompt"] = self.instruct + "<request>\n" + self.request + "<question>\n" + input + "<database>\n" + "|".join(
-            # #     db_table_names) + "\n".join(cells) + "<primary_keys>\n" + db_primary_keys + "<foreign_keys>\n" + db_foreign_keys + self.end_prompt
-            # content[
-            #     "prompt"] = self.instruct + "<request>\n" + self.request + "<question>\n" + input + "<database>\n" + "|".join(
-            #     db_table_names) + "\n" + "\n".join(cells) + self.end_prompt
-
-            table_info = to_linearized_data(example)
-            content[
-                "prompt"] = self.instruct + table_info + "<request>\n" + self.request + "<question>\n" + self.end_prompt
-            content["completion"] = example["query"]
-            if self.fit_heuristics_constraints("".join(content.values()), 4000 - 1024 - 500) is False:
-                continue
-
-            content["prompt"] = oneshot_prompt + content["prompt"]
-            self.prompt_input.append(content)
-        return self.prompt_input
 
     def retrieve_sqa(self):
         def to_linearized_data(_example):
@@ -581,9 +219,9 @@ class BabelConvertor:
                               }
                     }
             ret = self.linearizer.retrieve_linear_function(self.linearize_func,
-                                                           self.use_structure_mark,
-                                                           self.add_grammar,
-                                                           False, data)
+                                                           self.use_partition_mark,
+                                                           self.use_format_explanation,
+                                                           False, self.add_table_size, data)
             return ret
 
         oneshot_pool = []
@@ -633,9 +271,9 @@ class BabelConvertor:
                               }
                     }
             ret = self.linearizer.retrieve_linear_function(self.linearize_func,
-                                                           self.use_structure_mark,
-                                                           self.add_grammar,
-                                                           False, data)
+                                                           self.use_partition_mark,
+                                                           self.use_format_explanation,
+                                                           False, self.add_table_size, data)
             return ret
 
         oneshot_pool = []
@@ -714,8 +352,8 @@ class BabelConvertor:
                     }
 
             ret = self.linearizer.retrieve_linear_function(self.linearize_func,
-                                                           self.use_structure_mark,
-                                                           self.add_grammar,
+                                                           self.use_partition_mark,
+                                                           self.use_format_explanation,
                                                            False, data)
 
             if len(highlight_info) > 0:
@@ -749,39 +387,6 @@ class BabelConvertor:
             content = {}
             # highlight_idx = example["highlighted_cells"]
             final_questions = example["final_sentences"]
-            # table_page_title = example["table_page_title"]
-            # table_section_title = example["table_section_title"]
-            # tables = example["table"]
-            # header_info, table_info = [], []
-            # highlight_header, highlight_info = [], []
-            # for r_idx in range(len(tables)):
-            #     # if r_idx != 0:
-            #     #     table_info.append("\n")
-            #     row = []
-            #     for c_idx in range(len(tables[r_idx])):
-            #         if r_idx == 0:
-            #             if tables[r_idx][c_idx]["column_span"] == 1:
-            #                 header_info.append(tables[r_idx][c_idx]["value"])
-            #             else:
-            #                 for time in range(tables[r_idx][c_idx]["column_span"]):
-            #                     header_info.append(tables[r_idx][c_idx]["value"])
-            #         else:
-            #             row.append(tables[r_idx][c_idx]["value"])
-            #
-            #     if r_idx != 0:
-            #         table_info.append(row)
-            #
-            # parsed_header = list(x.replace("|", "") for x in header_info)
-            # try:
-            #     for h_idx in highlight_idx:
-            #         highlight_info.append(
-            #             str(h_idx) + ": " + str(parsed_header[h_idx[1]]) + "|" + tables[h_idx[0]][h_idx[1]][
-            #                 "value"] + "\n")
-            # except:
-            #     for h_idx in highlight_idx:
-            #         highlight_info.append(str(h_idx) + ": " + "-" + "|" + tables[h_idx[0]][h_idx[1]]["value"] + "\n")
-            # table_info = "<Page>\n" + table_page_title + "\n" + "<Table>\n" + table_section_title + "\n" + "<Cells>\n" + "".join(
-            #     header_info) + "\n" + "".join(table_info) + "\n" + "<Highlighted>\n" + "".join(highlight_info) + "\n"
             try:
                 table_info = to_linearized_data(example)
             except:
@@ -793,39 +398,6 @@ class BabelConvertor:
                 continue
 
             content["prompt"] = oneshot_prompt + content["prompt"]
-            self.prompt_input.append(content)
-        return self.prompt_input
-
-    def retrieve_webqsp(self):
-        for example in self.dataset[self.split]:
-            content = {}
-            kg_tuples = example["kg_tuples"]
-            question = example["question"] + "\n"
-            answer = example["answers"]
-            answer_cell = []
-            flag = 1
-            for i in range(len(answer)):
-                if None not in answer[i]:
-                    answer_cell.append("|".join(answer[i]))
-                else:
-                    flag = 0
-            if flag == 0:
-                continue
-            answer_cell = "".join(answer_cell)
-            entities = example["entities"]
-            cells = []
-            for i in range(len(kg_tuples)):
-                cells.append("|".join(kg_tuples[i]) + "\n")
-            mentioned_cells = []
-            for i in range(len(entities)):
-                mentioned_cells.append(" | ".join(entities[i]) + "\n")
-            mentioned_cells = "|".join(mentioned_cells) + "\n"
-            kg_info = "".join(cells) + "\n"
-            content[
-                "prompt"] = self.instruct + "<request>\n" + self.request + "<question>\n" + question + "<knowledge_graph>\n" + kg_info + "<mentioned_cell>\n" + mentioned_cells + self.end_prompt
-            content["completion"] = answer_cell
-            if self.fit_heuristics_constraints("".join(content.values())) is False:
-                continue
             self.prompt_input.append(content)
         return self.prompt_input
 
@@ -898,17 +470,21 @@ def get_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("--task", default=["formlm_opt", "formlm_qa", "formlm_block_type"], nargs="+",
                         help="Please specifiy the task name.")
-    # parser.add_argument("--structured_type", default="table", help="Please specify the type of the structured data.", type=str, choices=DATASETS.keys())
-    parser.add_argument("--objective", default=["zero"], nargs="+",
+    parser.add_argument("--objective", default=["oneshot"], nargs="+",
                         help="Please specify the parsing objective.")  # choices = ['zero', 'heur_{idx}', 'linear_{idx}']
     parser.add_argument("--split", default=["validation"], nargs="+",
                         help="Please specify which split you want to generate/parse.")  # choices = ['train', 'validation', 'test']
     parser.add_argument("--linear_func", default="html", type=str,
                         help="Please specify which linearization you want to use.")
-    parser.add_argument("--use_structure_mark", default=True, type=bool,
-                        help="Please specify whether to use_structure_mark.")
-    parser.add_argument("--add_grammar", default=False, type=bool,
-                        help="Please specify whether to add_grammar.")
+    # Choice-1: add additional information from the benchmark insights
+    parser.add_argument("--use_role_prompting", default=False, action="store_true") # 0
+    parser.add_argument("--add_table_size", default=False, action="store_true") # 1
+    parser.add_argument("--use_partition_mark", default=False, action="store_true", # 2
+                        help="Please specify whether to use_partition_mark.")
+    parser.add_argument("--use_format_explanation", default=False, action="store_true", # 3
+                        help="Please specify whether to use_format_explanation.")
+    # Choice-2: add additional information based on LLM knowledge
+    # use heur to control
     parser.add_argument("--unified", default=False, action="store_true",
                         help="generate the unified file for babel input")
     parser.add_argument("--unified_file_output", default="./exps/downstream_tasks_20230113_log/", type=str)
@@ -928,12 +504,14 @@ def task_specific_babel_convertor():
             for split in args.split:
                 structured_type = get_keys(DATASETS, task)[0]
                 # set up the instruction for the prompt design (prompt engineering-->role prompting)
-                args.instruction = f"You are a brilliant {structured_type} executor with the capbilities [retrieve], [input parsing], [metadata inference], [pattern understanding] who can understand the structural information of the {structured_type}.\n"
-                babel_convertor.set_split_obj(task, structured_type, split, obj, args.instruction,
-                                              args.linear_func, args.use_structure_mark, args.add_grammar
-                                              )
-                # save raw jsonl file
-                save_raw_jsonl(task, split)
+                if args.use_role_prompting:
+                    instruction = f"You are a brilliant {structured_type} executor with the capbilities [retrieve], [input parsing], [metadata inference], [pattern understanding] who can understand the structural information of the {structured_type}.\n"
+                else:
+                    instruction = ""
+                babel_convertor.set_split_obj(task, structured_type, split, obj, instruction,
+                                              args.linear_func, args.use_partition_mark, args.use_format_explanation, args.add_table_size)
+                # # save raw jsonl file
+                # save_raw_jsonl(task, split)
                 # retrieve the content sample list
                 content_list = babel_convertor.retrieve_sample_list()
                 if args.unified:

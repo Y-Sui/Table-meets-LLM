@@ -20,11 +20,12 @@ class StructuredDataLinearize:
     def __init__(self):
         self.end_prompt = "The answer is "
 
-    def retrieve_linear_function(self, func, use_structure_mark, add_grammar, change_order, structured_data_dict):
+    def retrieve_linear_function(self, func, use_structure_mark, add_grammar, change_order, table_size, structured_data_dict):
         self.structured_data_dict = structured_data_dict
         self.use_structure_mark = use_structure_mark
         self.add_grammar = add_grammar  # add grammer description of the format
         self.change_order = change_order  # if true, the table will change from row-major to column major
+        self.add_table_size = table_size
         dict = {
             "markdown": self.linearize_markdown,
             "markdown_grid": self.linearize_markdown_grid,
@@ -129,6 +130,11 @@ class StructuredDataLinearize:
             additional_knowledge = "".join(self.structured_data_dict["title"]) + "\n" + "".join(
                 self.structured_data_dict["context"]) + "\n" + "".join(
                 self.structured_data_dict["table"]["caption"]) + "\n"
+        if self.add_table_size:
+            rows =  len(self.structured_data_dict['table']['rows'])
+            columns = len(self.structured_data_dict['table']['rows'][0])
+            additional_knowledge += "\n" + f"The table has {rows} rows and {columns} columns \n"
+
         if self.change_order:
             header = False if len(self.structured_data_dict['table']['header']) == 1 and \
                               self.structured_data_dict['table']['header'][0] == "" else True

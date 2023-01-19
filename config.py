@@ -39,22 +39,9 @@ def get_heuristics(data_type):
 def get_requests(data):
     requests_dict = {
         "tabfact": "Verify the statement against the seen tables, output 1 when it's entailed, 0 when it's refuted, \n",
-        "cosql": "Generate SQL based on the utterance and database information, \n",
-        "dart": "Generate natural language text from the given RDF triplets: \n",
         "feverous": "Verified the claim with the evidence in the forms of sentences and cells from tables, the answer should be 0 if refutes, or 1 if supports: \n",
-        "gittables": "Please annotate table column with entity name from the following choices: \n",
-        "hybridqa": "Aggregate both tabular information and text information to answer the question (Do not repeat the question, and shorten the answers as much as possible): \n",
-        "logic2text": "Generate natural language description based on the logic_form and the tabular information: \n",
-        "multi_woz_dia": "Predict each dialog utterance's intent (one by one) (return short answers): \n",
-        "multi_woz_intent": "Predict overall conversation's intent from the user side (return short answers): \n",
-        "spider": "Generate SQL from the given natural language question: \n",
+        "hybridqa": "Answer the question with both tabular information and text information (Do not repeat the question, and shorten the answers as much as possible): \n",
         "sqa": "Answer the question with the tabular information: \n",
-        "sql2text": "Convert the given SQL to natural language query: \n",
         "totto": "Generate natural language description for each highlighted part of the table: \n",
-        "webqsp": "Answer the question using entity id instead of entity name, with the mentioned entity and knowledge graph information: \n",
-        "formlm": "Recommend a set of possible options for the choice block, use | to split the answer, e.g., 'Male|Female' \n",
-        "formlm_opt": "Recommend a set of possible options for the choice block, use | to split the answer, e.g., 'Male|Female' \n",
-        "formlm_qa": "Recommend the title of the given block, only output the title name without explanation \n",
-        "formlm_block_type": "Predict the block type, the answer should come from this list [textfield, choice, rating, likert, time, data, upload, description, section] \n only output the type name without explanation \n",
     }
     return requests_dict[data]
