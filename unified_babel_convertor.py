@@ -81,7 +81,11 @@ class BabelConvertor:
         self.request = get_requests(self.task)
         self.end_prompt = "The answer is \n"
         if self.objective.__contains__("heur"):
-            self.request = get_heuristics(self.data_type)[objective]
+            if self.task in ["tabfact", "feverous", "totto"]:
+                context_type = "statement"
+            elif self.task in ["hybridqa", "sqa"]:
+                context_type = "question"
+            self.request = get_heuristics(self.data_type, context_type)[objective]
             self.end_prompt = "The structural information is \n"
             self.flag = 1
 
@@ -89,7 +93,6 @@ class BabelConvertor:
         dict = {"feverous": self.retrieve_feverous, "hybridqa": self.retrieve_hybridqa, "totto": self.retrieve_totto, "tabfact": self.retrieve_tabfact,
                 "sqa": self.retrieve_sqa}
         return dict[self.task]()
-
 
     def retrieve_feverous(self):
         def to_linearized_data(_example):
@@ -111,8 +114,11 @@ class BabelConvertor:
         if 'oneshot' in self.objective:
             while len(oneshot_pool) < 128:
                 oneshot_example = self.get_one_shot_example()
-
-                oneshot_prompt = to_linearized_data(oneshot_example)
+                try:
+                    oneshot_prompt = to_linearized_data(oneshot_example)
+                except:
+                    continue
+                # oneshot_prompt = to_linearized_data(oneshot_example)
                 label = "0" if oneshot_example["label"] == "REFUTES" else "1"
                 oneshot_prompt = ("<example>\n" + oneshot_prompt + "<statement>\n" + oneshot_example[
                     "statement"] + "\n" + self.end_prompt + label + "\n</example>")
@@ -138,8 +144,10 @@ class BabelConvertor:
             #     cells.append("|".join(example["table"]["rows"][0][i]) + "\n")
             # cells = "".join(cells) + "\n"
             # table_info = header + cells
-
-            table_info = to_linearized_data(example)
+            try:
+                table_info = to_linearized_data(example)
+            except:
+                continue
             content[
                 "prompt"] = self.instruct + table_info + "<request>\n" + self.request + "<statement>\n" + statement + self.end_prompt
             content["completion"] = "0" if label == "REFUTES" else "1"
@@ -354,7 +362,7 @@ class BabelConvertor:
             ret = self.linearizer.retrieve_linear_function(self.linearize_func,
                                                            self.use_partition_mark,
                                                            self.use_format_explanation,
-                                                           False, data)
+                                                           False, self.add_table_size, data)
 
             if len(highlight_info) > 0:
                 return ret + "<Highlighted>\n" + "".join(highlight_info)
@@ -468,7 +476,7 @@ def save_unified_jsonl(output_path: str, unified_dict: dict):
 def get_arguments():
     # Required parameters
     parser = argparse.ArgumentParser()
-    parser.add_argument("--task", default=["formlm_opt", "formlm_qa", "formlm_block_type"], nargs="+",
+    parser.add_argument("--task", default=["feverous"], nargs="+",
                         help="Please specifiy the task name.")
     parser.add_argument("--objective", default=["oneshot"], nargs="+",
                         help="Please specify the parsing objective.")  # choices = ['zero', 'heur_{idx}', 'linear_{idx}']
@@ -477,11 +485,11 @@ def get_arguments():
     parser.add_argument("--linear_func", default="html", type=str,
                         help="Please specify which linearization you want to use.")
     # Choice-1: add additional information from the benchmark insights
-    parser.add_argument("--use_role_prompting", default=False, action="store_true") # 0
-    parser.add_argument("--add_table_size", default=False, action="store_true") # 1
-    parser.add_argument("--use_partition_mark", default=False, action="store_true", # 2
+    parser.add_argument("--use_role_prompting", default=True, action="store_true") # 0
+    parser.add_argument("--add_table_size", default=True, action="store_true") # 1
+    parser.add_argument("--use_partition_mark", default=True, action="store_true", # 2
                         help="Please specify whether to use_partition_mark.")
-    parser.add_argument("--use_format_explanation", default=False, action="store_true", # 3
+    parser.add_argument("--use_format_explanation", default=True, action="store_true", # 3
                         help="Please specify whether to use_format_explanation.")
     # Choice-2: add additional information based on LLM knowledge
     # use heur to control

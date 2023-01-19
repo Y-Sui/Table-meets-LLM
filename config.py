@@ -24,24 +24,38 @@ LINEARIZE_1 = ["markdown_1", "markdown_grid_1", "html_1", "json_1", "latex_1", "
 LINEARIZE_0_1 = ["markdown_0_1", "markdown_grid_0_1", "html_0_1", "json_0_1", "latex_0_1", "nl_sep_0_1"]
 LINEARIZE = LINEARIZE_ + LINEARIZE_0 + LINEARIZE_1 + LINEARIZE_0_1
 
-def get_heuristics(data_type):
+# old_version_heuristics = {
+#         "heur_0": f"Generate structural information that will be beneficial for understanding {data_type}: \n",
+#         "heur_1": f"Let's think step by step: \n", # zero-shot-CoT
+#         "heur_2": f"Add structural information for {data_type}: \n",
+#         "heur_3": f"Let's solve this problem by splitting it into steps: \n", # zero-shot-CoT
+#         "heur_4": f"First analyze, \n",
+#         "heur_5": f"The answer is after the structural information of {data_type}, \n",
+#         "heur_6": f"Before we dive into the answer, think about the structural information of {data_type}, \n",
+#         "heur_7": f"Give attention to structural information of {data_type}, \n"
+# }
+
+def get_heuristics(data_type, context_type):
     return {
         "heur_0": f"Generate structural information that will be beneficial for understanding {data_type}: \n",
-        "heur_1": f"Let's think step by step: \n", # zero-shot-CoT
+        "heur_1": f"Let's think step by step: \n",  # zero-shot-CoT
         "heur_2": f"Add structural information for {data_type}: \n",
-        "heur_3": f"Let's solve this problem by splitting it into steps: \n", # zero-shot-CoT
+        "heur_3": f"Let's solve this problem by splitting it into steps: \n",  # zero-shot-CoT
         "heur_4": f"First analyze, \n",
         "heur_5": f"The answer is after the structural information of {data_type}, \n",
         "heur_6": f"Before we dive into the answer, think about the structural information of {data_type}, \n",
-        "heur_7": f"Give attention to structural information of {data_type}, \n"
+        "heur_7": f"Give attention to structural information of {data_type}, \n",
+        "heur_8": f"Generate short format specification and description of the last {data_type} within five sentences. \n",
+        "heur_9": f"Identify critical values and ranges of the last {data_type} related to the {context_type} within five sentences. \n",
+        "heur_10": f"Describe structural information, patterns and statistics of the last {data_type} related to the {context_type} within five sentences. \n"
     }
 
 def get_requests(data):
     requests_dict = {
-        "tabfact": "Verify the statement against the seen tables, output 1 when it's entailed, 0 when it's refuted, \n",
-        "feverous": "Verified the claim with the evidence in the forms of sentences and cells from tables, the answer should be 0 if refutes, or 1 if supports: \n",
-        "hybridqa": "Answer the question with both tabular information and text information (Do not repeat the question, and shorten the answers as much as possible): \n",
-        "sqa": "Answer the question with the tabular information: \n",
-        "totto": "Generate natural language description for each highlighted part of the table: \n",
+        "tabfact": "Verify the statement against the last table. Return 1 when it's entailed, 0 when it's refuted. \n",
+        "feverous": "Verified the claim with the evidence in the forms of sentences and cells from last table. The answer should be 0 if it refutes or 1 if it supports. \n",
+        "hybridqa": "Aggregate tabular information and text information to answer the question (Do not repeat the question, and shorten the answer as much as possible). \n",
+        "sqa": "Answer the question with the tabular information. \n",
+        "totto": "Generate natural language description for each highlighted part of the last table line by line: \n",
     }
     return requests_dict[data]
