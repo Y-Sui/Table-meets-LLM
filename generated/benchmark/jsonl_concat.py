@@ -2,13 +2,15 @@ import json
 import argparse
 import os
 
-TABLE_TASKS = ["cell_lookup", "column_retrieval", "row_retrieval", "size_detection", "cell_lookup_pos", "table_partition", "merged_cell_detection"]
+TABLE_TASKS = ["cell_lookup", "column_retrieval", "row_retrieval", "scope_detection", "cell_lookup_pos", "span_detection"]
 FORM_TASKS = ["block_dependency", "block_traversal"]
 
 def get_arguments():
     # Required parameters
     parser = argparse.ArgumentParser()
-    parser.add_argument("--task", default=["cell_lookup", "column_retrieval", "row_retrieval", "scope_detection", "cell_lookup_pos", "span_detection", ""], nargs="+",
+    # parser.add_argument("--dataset", default=["totto", "feverous", "tabfact", "sqa", "hybridqa"], nargs="+",
+    #                     help="Please specifiy the task name.")
+    parser.add_argument("--task", default=["cell_lookup", "column_retrieval", "row_retrieval", "scope_detection", "cell_lookup_pos", "span_detection"], nargs="+",
                         help="Please specifiy the task name.")
     parser.add_argument("--type", default="table")
     args = parser.parse_args()
