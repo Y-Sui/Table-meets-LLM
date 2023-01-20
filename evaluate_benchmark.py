@@ -115,7 +115,7 @@ class BenchmarkEvaluator:
                     elif task_name == "column_retrieval":
                         predict_list.append(obj['samples'][0].replace("\nthe answer is:\n", "").replace("\nThe answer is: ", "").replace("\nThe answer is:\n", "").replace("\nthe answer is: ", "").replace('"', '').replace(".", "").replace("\n", ""))
                     elif task_name == "row_retrieval":
-                        predict_list.append(obj['samples'][0].replace("\n", "").replace("The answer is: ", "").replace("The answer is:", "").replace("\nthe answer is: ", ""))
+                        predict_list.append(obj['samples'][0].replace("\n", "").replace("The answer is: ", "").replace("The answer is:", "").replace("\nthe answer is: ", "").replace("|", " | "))
                     elif task_name == "size_detection":
                         try:
                             pattern = r"(\d+ \| \d+)+"
@@ -176,7 +176,7 @@ class BenchmarkEvaluator:
 def get_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("--task_group", default="table", type=str, help="Please give the task name")
-    parser.add_argument("--log_file_path", default="table_benchmarks_20230119_1_shot_log", type=str, help="Please indicate the log file path")
+    parser.add_argument("--log_file_path", default="table_benchmarks_20230118_zero_shot_log", type=str, help="Please indicate the log file path")
     parser.add_argument("--model", default=["text003"], nargs="+", help="Please give the model results you want to evaluate")
     parser.add_argument("--linearize_list", nargs="+")
     args = parser.parse_args()
