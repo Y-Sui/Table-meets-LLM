@@ -158,6 +158,7 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
         self.use_format_explanation = args.use_format_explanation  # mark as 1
         self.change_order = args.change_order  # mark as 2
         self.use_role_prompting = args.use_role_prompting  # mark as 3
+        self.swap_input_order = args.swap_input_order
 
         # random sample
         self.random_samples = 300
@@ -247,7 +248,7 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
                 }
             }
             try:
-                schema_knowledge = self.linearize.retrieve_linear_function(self.linearize_function, self.use_partition_mark, self.use_format_explanation, self.change_order, structured_data_dict)
+                schema_knowledge = self.linearize.retrieve_linear_function(self.linearize_function, self.use_partition_mark, self.use_format_explanation, self.change_order, self.swap_input_order, structured_data_dict)
             except:
                 continue
             if self.specific_objective == "1-shot":
@@ -325,12 +326,12 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
 
         # save as jsonl (tabfact)
         logging.info(f"{self.dataset_name} tasks {self.specific_objective} datasets have been generated..")
-        # save_table_jsonl(self.dataset_name, "cell_lookup", self.mode, self.random_sampling(self.cell_lookup_pair))
-        # save_table_jsonl(self.dataset_name, "cell_lookup_pos", self.mode, self.random_sampling(self.cell_lookup_pos_pair))
-        # save_table_jsonl(self.dataset_name, "row_retrieval", self.mode, self.random_sampling(self.row_pair))
-        # save_table_jsonl(self.dataset_name, "column_retrieval", self.mode, self.random_sampling(self.column_pair))
-        # save_table_jsonl(self.dataset_name, "size_detection", self.mode, self.random_sampling(self.size_pair))
-        save_table_jsonl(self.dataset_name, "table_partition", self.mode, self.random_sampling(self.table_partition))
+        save_table_jsonl(self.dataset_name, "cell_lookup", self.mode, self.random_sampling(self.cell_lookup_pair))
+        save_table_jsonl(self.dataset_name, "cell_lookup_pos", self.mode, self.random_sampling(self.cell_lookup_pos_pair))
+        save_table_jsonl(self.dataset_name, "row_retrieval", self.mode, self.random_sampling(self.row_pair))
+        save_table_jsonl(self.dataset_name, "column_retrieval", self.mode, self.random_sampling(self.column_pair))
+        save_table_jsonl(self.dataset_name, "size_detection", self.mode, self.random_sampling(self.size_pair))
+        # save_table_jsonl(self.dataset_name, "table_partition", self.mode, self.random_sampling(self.table_partition))
 
     def retrieval_sqa_info(self):
         for idx, example in enumerate(self.dataset[self.split]):
@@ -352,7 +353,7 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
                 }
             }
             try:
-                schema_knowledge = self.linearize.retrieve_linear_function(self.linearize_function, self.use_partition_mark, self.use_format_explanation, self.change_order, structured_data_dict)
+                schema_knowledge = self.linearize.retrieve_linear_function(self.linearize_function, self.use_partition_mark, self.use_format_explanation, self.change_order, self.swap_input_order, structured_data_dict)
             except:
                 continue
             if self.specific_objective == "1-shot":
@@ -430,12 +431,12 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
 
         # save as jsonl (sqa)
         logging.info(f"{self.dataset_name} tasks {self.specific_objective} datasets have been generated..")
-        # save_table_jsonl(self.dataset_name, "cell_lookup", self.mode, self.random_sampling(self.cell_lookup_pair))
-        # save_table_jsonl(self.dataset_name, "cell_lookup_pos", self.mode, self.random_sampling(self.cell_lookup_pos_pair))
-        # save_table_jsonl(self.dataset_name, "row_retrieval", self.mode, self.random_sampling(self.row_pair))
-        # save_table_jsonl(self.dataset_name, "column_retrieval", self.mode, self.random_sampling(self.column_pair))
-        # save_table_jsonl(self.dataset_name, "size_detection", self.mode, self.random_sampling(self.size_pair))
-        save_table_jsonl(self.dataset_name, "table_partition", self.mode, self.random_sampling(self.table_partition))
+        save_table_jsonl(self.dataset_name, "cell_lookup", self.mode, self.random_sampling(self.cell_lookup_pair))
+        save_table_jsonl(self.dataset_name, "cell_lookup_pos", self.mode, self.random_sampling(self.cell_lookup_pos_pair))
+        save_table_jsonl(self.dataset_name, "row_retrieval", self.mode, self.random_sampling(self.row_pair))
+        save_table_jsonl(self.dataset_name, "column_retrieval", self.mode, self.random_sampling(self.column_pair))
+        save_table_jsonl(self.dataset_name, "size_detection", self.mode, self.random_sampling(self.size_pair))
+        # save_table_jsonl(self.dataset_name, "table_partition", self.mode, self.random_sampling(self.table_partition))
 
     def retrieval_hybridqa_info(self):
         for idx, example in enumerate(self.dataset[self.split]):
@@ -456,7 +457,7 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
                 }
             }
             try:
-                schema_knowledge = self.linearize.retrieve_linear_function(self.linearize_function, self.use_partition_mark, self.use_format_explanation, self.change_order, structured_data_dict)
+                schema_knowledge = self.linearize.retrieve_linear_function(self.linearize_function, self.use_partition_mark, self.use_format_explanation, self.change_order, self.swap_input_order, structured_data_dict)
             except:
                 continue
             if self.specific_objective == "1-shot":
@@ -534,12 +535,12 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
 
         # save as jsonl (hybridqa)
         logging.info(f"{self.dataset_name} tasks {self.specific_objective} datasets have been generated..")
-        # save_table_jsonl(self.dataset_name, "cell_lookup", self.mode, self.random_sampling(self.cell_lookup_pair))
-        # save_table_jsonl(self.dataset_name, "cell_lookup_pos", self.mode, self.random_sampling(self.cell_lookup_pos_pair))
-        # save_table_jsonl(self.dataset_name, "row_retrieval", self.mode, self.random_sampling(self.row_pair))
-        # save_table_jsonl(self.dataset_name, "column_retrieval", self.mode, self.random_sampling(self.column_pair))
-        # save_table_jsonl(self.dataset_name, "size_detection", self.mode, self.random_sampling(self.size_pair))
-        save_table_jsonl(self.dataset_name, "table_partition", self.mode, self.random_sampling(self.table_partition))
+        save_table_jsonl(self.dataset_name, "cell_lookup", self.mode, self.random_sampling(self.cell_lookup_pair))
+        save_table_jsonl(self.dataset_name, "cell_lookup_pos", self.mode, self.random_sampling(self.cell_lookup_pos_pair))
+        save_table_jsonl(self.dataset_name, "row_retrieval", self.mode, self.random_sampling(self.row_pair))
+        save_table_jsonl(self.dataset_name, "column_retrieval", self.mode, self.random_sampling(self.column_pair))
+        save_table_jsonl(self.dataset_name, "size_detection", self.mode, self.random_sampling(self.size_pair))
+        # save_table_jsonl(self.dataset_name, "table_partition", self.mode, self.random_sampling(self.table_partition))
 
     def retrieval_feverous_info(self):
         for idx, example in enumerate(self.dataset[self.split]):
@@ -560,7 +561,7 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
                 }
             }
             try:
-                schema_knowledge = self.linearize.retrieve_linear_function(self.linearize_function, self.use_partition_mark, self.use_format_explanation, self.change_order, structured_data_dict)
+                schema_knowledge = self.linearize.retrieve_linear_function(self.linearize_function, self.use_partition_mark, self.use_format_explanation, self.change_order, self.swap_input_order, structured_data_dict)
             except:
                 continue
             if self.specific_objective == "1-shot":
@@ -638,12 +639,12 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
 
         # save as jsonl (feverous)
         logging.info(f"{self.dataset_name} tasks {self.specific_objective} datasets have been generated..")
-        # save_table_jsonl(self.dataset_name, "cell_lookup", self.mode, self.random_sampling(self.cell_lookup_pair))
-        # save_table_jsonl(self.dataset_name, "cell_lookup_pos", self.mode, self.random_sampling(self.cell_lookup_pos_pair))
-        # save_table_jsonl(self.dataset_name, "row_retrieval", self.mode, self.random_sampling(self.row_pair))
-        # save_table_jsonl(self.dataset_name, "column_retrieval", self.mode, self.random_sampling(self.column_pair))
-        # save_table_jsonl(self.dataset_name, "size_detection", self.mode, self.random_sampling(self.size_pair))
-        save_table_jsonl(self.dataset_name, "table_partition", self.mode, self.random_sampling(self.table_partition))
+        save_table_jsonl(self.dataset_name, "cell_lookup", self.mode, self.random_sampling(self.cell_lookup_pair))
+        save_table_jsonl(self.dataset_name, "cell_lookup_pos", self.mode, self.random_sampling(self.cell_lookup_pos_pair))
+        save_table_jsonl(self.dataset_name, "row_retrieval", self.mode, self.random_sampling(self.row_pair))
+        save_table_jsonl(self.dataset_name, "column_retrieval", self.mode, self.random_sampling(self.column_pair))
+        save_table_jsonl(self.dataset_name, "size_detection", self.mode, self.random_sampling(self.size_pair))
+        # save_table_jsonl(self.dataset_name, "table_partition", self.mode, self.random_sampling(self.table_partition))
 
     def retrieval_totoo_info(self):
         for idx, example in enumerate(self.dataset[self.split]):
@@ -690,7 +691,7 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
             }
 
             try:
-                schema_knowledge = self.linearize.retrieve_linear_function(self.linearize_function, self.use_partition_mark, self.use_format_explanation, self.change_order, structured_data_dict)
+                schema_knowledge = self.linearize.retrieve_linear_function(self.linearize_function, self.use_partition_mark, self.use_format_explanation, self.change_order, self.swap_input_order, structured_data_dict)
             except:
                 continue
             if self.specific_objective == "1-shot":
@@ -779,13 +780,13 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
 
         # save as jsonl (totto)
         logging.info(f"{self.dataset_name} tasks {self.specific_objective} datasets have been generated..")
-        # save_table_jsonl(self.dataset_name, "cell_lookup", self.mode, self.random_sampling(self.cell_lookup_pair))
-        # save_table_jsonl(self.dataset_name, "cell_lookup_pos", self.mode, self.random_sampling(self.cell_lookup_pos_pair))
-        # save_table_jsonl(self.dataset_name, "row_retrieval", self.mode, self.random_sampling(self.row_pair))
-        # save_table_jsonl(self.dataset_name, "column_retrieval", self.mode, self.random_sampling(self.column_pair))
-        # save_table_jsonl(self.dataset_name, "size_detection", self.mode, self.random_sampling(self.size_pair))
-        save_table_jsonl(self.dataset_name, "merged_cell_detection", self.mode, self.random_sampling(self.column_span_pair))
-        save_table_jsonl(self.dataset_name, "table_partition", self.mode, self.random_sampling(self.table_partition))
+        save_table_jsonl(self.dataset_name, "cell_lookup", self.mode, self.random_sampling(self.cell_lookup_pair))
+        save_table_jsonl(self.dataset_name, "cell_lookup_pos", self.mode, self.random_sampling(self.cell_lookup_pos_pair))
+        save_table_jsonl(self.dataset_name, "row_retrieval", self.mode, self.random_sampling(self.row_pair))
+        save_table_jsonl(self.dataset_name, "column_retrieval", self.mode, self.random_sampling(self.column_pair))
+        save_table_jsonl(self.dataset_name, "size_detection", self.mode, self.random_sampling(self.size_pair))
+        # save_table_jsonl(self.dataset_name, "merged_cell_detection", self.mode, self.random_sampling(self.column_span_pair))
+        # save_table_jsonl(self.dataset_name, "table_partition", self.mode, self.random_sampling(self.table_partition))
 
     def cell_lookup_generation(self, cells, schema_knowledge):
         """
@@ -1070,6 +1071,7 @@ def get_arguments():
     parser.add_argument("--use_format_explanation", default=False, action="store_true")
     parser.add_argument("--use_role_prompting", default=False, action="store_true")
     parser.add_argument("--change_order", default=False, action="store_true")
+    parser.add_argument("--swap_input_order", default=False, action="store_true")
     args = parser.parse_args()
     return args
 

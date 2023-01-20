@@ -13,16 +13,17 @@ MODELS = {
 }
 
 TASKS = {
-    "table": ["cell_lookup", "cell_lookup_pos", "column_retrieval", "row_retrieval", "scope_detection", "span_detection"],
+    "table": ["table_partition", "cell_lookup", "cell_lookup_pos", "column_retrieval", "row_retrieval", "size_detection", "merged_cell_detection"],
     "form": ["block_dependency", "block_traversal"]
 }
 
-LINEARIZE_ = ["markdown", "markdown_grid", "html", "json", "latex", "nl_sep"]
-LINEARIZE_0 = ["markdown_0", "markdown_grid_0", "html_0", "json_0", "latex_0", "nl_sep_0"] # add structure mark
-LINEARIZE_1 = ["markdown_1", "markdown_grid_1", "html_1", "json_1", "latex_1", "nl_sep_1"] # add grammar
+LINEARIZE_ = ["markdown", "html", "json", "xml", "nl_sep"]
+LINEARIZE_0_3 = ["markdown_0_3", "html_0_3", "json_0_3", "xml_0_3", "nl_sep_0_3"] # add structure mark
+LINEARIZE_1_3 = ["markdown_1_3", "html_1_3", "json_1_3", "xml_1_3", "nl_sep_1_3"] # add grammar
 # LINEARIZE_2 = ["markdown_2", "markdown_grid_2", "html_2", "json_2", "latex_2", "nl_sep_2"] # change order
-LINEARIZE_0_1 = ["markdown_0_1", "markdown_grid_0_1", "html_0_1", "json_0_1", "latex_0_1", "nl_sep_0_1"]
-LINEARIZE = LINEARIZE_ + LINEARIZE_0 + LINEARIZE_1 + LINEARIZE_0_1
+LINEARIZE_0_1 = ["markdown_0_1", "html_0_1", "json_0_1", "xml_0_1", "nl_sep_0_1"]
+LINEARIZE_0_1_3 = ["markdown_0_1_3", "html_0_1_3", "json_0_1_3", "xml_0_1_3", "nl_sep_0_1_3"]
+LINEARIZE = LINEARIZE_0_1_3 + LINEARIZE_0_3 + LINEARIZE_1_3 + LINEARIZE_0_1
 
 def get_heuristics(data_type):
     return {
