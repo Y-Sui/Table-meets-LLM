@@ -166,8 +166,10 @@ class BabelConvertor:
         if 'oneshot' in self.objective:
             while len(oneshot_pool) < 512:
                 oneshot_example = self.get_one_shot_example()
-
-                oneshot_prompt = to_linearized_data(oneshot_example)
+                try:
+                    oneshot_prompt = to_linearized_data(oneshot_example)
+                except:
+                    continue
                 label = "0" if oneshot_example["label"] == "REFUTES" else "1"
                 oneshot_prompt = ("<example>\n" + oneshot_prompt + "<statement>\n" + oneshot_example[
                     "statement"] + "\n" + self.end_prompt + label + "\n</example>")
@@ -198,14 +200,18 @@ class BabelConvertor:
             # cells = "".join(cells) + "\n"
             # table_info = header + cells
 
-            table_info = to_linearized_data(example)
+            try:
+                table_info = to_linearized_data(example)
+            except:
+                continue
             content[
                 "prompt"] = self.instruct + table_info + "<request>\n" + self.request + "<statement>\n" + statement + self.end_prompt
             content["completion"] = "0" if label == "REFUTES" else "1"
             if self.fit_heuristics_constraints("".join(content.values()), 4000 - 1024 - 500) is False:
                 continue
 
-            content["prompt"] = oneshot_prompt + content["prompt"]
+            # content["prompt"] = oneshot_prompt + content["prompt"]
+            content["example"] = oneshot_prompt
             self.prompt_input.append(content)
         return self.prompt_input
 
@@ -404,7 +410,8 @@ class BabelConvertor:
             if self.fit_heuristics_constraints("".join(content.values()), 4000 - 1024 - 500) is False:
                 continue
 
-            content["prompt"] = oneshot_prompt + content["prompt"]
+            # content["prompt"] = oneshot_prompt + content["prompt"]
+            content["example"] = oneshot_prompt
             self.prompt_input.append(content)
         return self.prompt_input
 
@@ -632,7 +639,8 @@ class BabelConvertor:
             if self.fit_heuristics_constraints("".join(content.values()), 4000 - 1024 - 500) is False:
                 continue
 
-            content["prompt"] = oneshot_prompt + content["prompt"]
+            # content["prompt"] = oneshot_prompt + content["prompt"]
+            content["example"] = oneshot_prompt
             self.prompt_input.append(content)
         return self.prompt_input
 
@@ -692,7 +700,8 @@ class BabelConvertor:
             if self.fit_heuristics_constraints("".join(content.values()), 4000 - 1024 - 500) is False:
                 continue
 
-            content["prompt"] = oneshot_prompt + content["prompt"]
+            # content["prompt"] = oneshot_prompt + content["prompt"]
+            content["example"] = oneshot_prompt
             self.prompt_input.append(content)
         return self.prompt_input
 
@@ -815,7 +824,8 @@ class BabelConvertor:
             if self.fit_heuristics_constraints("".join(content.values()), 4000 - 1024 - 500) is False:
                 continue
 
-            content["prompt"] = oneshot_prompt + content["prompt"]
+            # content["prompt"] = oneshot_prompt + content["prompt"]
+            content["example"] = oneshot_prompt
             self.prompt_input.append(content)
         return self.prompt_input
 
@@ -928,15 +938,16 @@ def get_arguments():
                         help="Please specify which split you want to generate/parse.")  # choices = ['train', 'validation', 'test']
     parser.add_argument("--linear_func", default="html", type=str,
                         help="Please specify which linearization you want to use.")
-    parser.add_argument("--use_structure_mark", default=True, type=bool,
+    parser.add_argument("--use_structure_mark", default=True, action="store_true",
                         help="Please specify whether to use_structure_mark.")
-    parser.add_argument("--add_grammar", default=False, type=bool,
+    parser.add_argument("--add_grammar", default=True, action="store_true",
                         help="Please specify whether to add_grammar.")
     parser.add_argument("--heuristic", default=None, type=str,
                         help="Please specify which heuristic to use: [heur_8, heur_9]")
     parser.add_argument("--unified", default=False, action="store_true",
                         help="generate the unified file for babel input")
     parser.add_argument("--unified_file_output", default="./exps/downstream_tasks_20230113_log/", type=str)
+    parser.add_argument("--add_table_size", default=True, action="store_true")
     args = parser.parse_args()
     return args
 
