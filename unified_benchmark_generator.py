@@ -331,7 +331,7 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
         save_table_jsonl(self.dataset_name, "row_retrieval", self.mode, self.random_sampling(self.row_pair))
         save_table_jsonl(self.dataset_name, "column_retrieval", self.mode, self.random_sampling(self.column_pair))
         save_table_jsonl(self.dataset_name, "size_detection", self.mode, self.random_sampling(self.size_pair))
-        # save_table_jsonl(self.dataset_name, "table_partition", self.mode, self.random_sampling(self.table_partition))
+        save_table_jsonl(self.dataset_name, "table_partition", self.mode, self.random_sampling(self.table_partition))
 
     def retrieval_sqa_info(self):
         for idx, example in enumerate(self.dataset[self.split]):
@@ -436,7 +436,7 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
         save_table_jsonl(self.dataset_name, "row_retrieval", self.mode, self.random_sampling(self.row_pair))
         save_table_jsonl(self.dataset_name, "column_retrieval", self.mode, self.random_sampling(self.column_pair))
         save_table_jsonl(self.dataset_name, "size_detection", self.mode, self.random_sampling(self.size_pair))
-        # save_table_jsonl(self.dataset_name, "table_partition", self.mode, self.random_sampling(self.table_partition))
+        save_table_jsonl(self.dataset_name, "table_partition", self.mode, self.random_sampling(self.table_partition))
 
     def retrieval_hybridqa_info(self):
         for idx, example in enumerate(self.dataset[self.split]):
@@ -540,7 +540,7 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
         save_table_jsonl(self.dataset_name, "row_retrieval", self.mode, self.random_sampling(self.row_pair))
         save_table_jsonl(self.dataset_name, "column_retrieval", self.mode, self.random_sampling(self.column_pair))
         save_table_jsonl(self.dataset_name, "size_detection", self.mode, self.random_sampling(self.size_pair))
-        # save_table_jsonl(self.dataset_name, "table_partition", self.mode, self.random_sampling(self.table_partition))
+        save_table_jsonl(self.dataset_name, "table_partition", self.mode, self.random_sampling(self.table_partition))
 
     def retrieval_feverous_info(self):
         for idx, example in enumerate(self.dataset[self.split]):
@@ -644,7 +644,7 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
         save_table_jsonl(self.dataset_name, "row_retrieval", self.mode, self.random_sampling(self.row_pair))
         save_table_jsonl(self.dataset_name, "column_retrieval", self.mode, self.random_sampling(self.column_pair))
         save_table_jsonl(self.dataset_name, "size_detection", self.mode, self.random_sampling(self.size_pair))
-        # save_table_jsonl(self.dataset_name, "table_partition", self.mode, self.random_sampling(self.table_partition))
+        save_table_jsonl(self.dataset_name, "table_partition", self.mode, self.random_sampling(self.table_partition))
 
     def retrieval_totoo_info(self):
         for idx, example in enumerate(self.dataset[self.split]):
@@ -785,8 +785,8 @@ class TableDataRetrievalGenerator(DataRetrievalGenerator):
         save_table_jsonl(self.dataset_name, "row_retrieval", self.mode, self.random_sampling(self.row_pair))
         save_table_jsonl(self.dataset_name, "column_retrieval", self.mode, self.random_sampling(self.column_pair))
         save_table_jsonl(self.dataset_name, "size_detection", self.mode, self.random_sampling(self.size_pair))
-        # save_table_jsonl(self.dataset_name, "merged_cell_detection", self.mode, self.random_sampling(self.column_span_pair))
-        # save_table_jsonl(self.dataset_name, "table_partition", self.mode, self.random_sampling(self.table_partition))
+        save_table_jsonl(self.dataset_name, "merged_cell_detection", self.mode, self.random_sampling(self.column_span_pair))
+        save_table_jsonl(self.dataset_name, "table_partition", self.mode, self.random_sampling(self.table_partition))
 
     def cell_lookup_generation(self, cells, schema_knowledge):
         """
