@@ -28,6 +28,14 @@ LINEARIZE = LINEARIZE_ + LINEARIZE_0 + LINEARIZE_1 + LINEARIZE_0_1
 
 def get_heuristics(data_type, context_type="statement"):
     return {
+        "heur_0": f"Generate structural information that will be beneficial for understanding {data_type}: \n",
+        "heur_1": f"Let's think step by step: \n",  # zero-shot-CoT
+        "heur_2": f"Add structural information for {data_type}: \n",
+        "heur_3": f"Let's solve this problem by splitting it into steps: \n",  # zero-shot-CoT
+        "heur_4": f"First analyze, \n",
+        "heur_5": f"The answer is after the structural information of {data_type}, \n",
+        "heur_6": f"Before we dive into the answer, think about the structural information of {data_type}, \n",
+        "heur_7": f"Give attention to structural information of {data_type}, \n",
         "heur_8": f"Generate short format specification and description of the last {data_type} within five sentences. \n",
         "heur_9": f"Identify critical values and ranges of the last {data_type} related to the {context_type} within five sentences. \n",
         "heur_10": f"Describe structural information, patterns and statistics of the last {data_type} related to the {context_type} within five sentences. \n"
@@ -36,6 +44,14 @@ def get_heuristics(data_type, context_type="statement"):
 
 def get_end_prompt():
     return {
+        "heur_0": "The structural information are \n",
+        "heur_1": "The chain of thought is \n",  # zero-shot-CoT
+        "heur_2": "The structural information are: \n",
+        "heur_3": "The thinking steps are\n",  # zero-shot-CoT
+        "heur_4": "The chain of thought is, \n",
+        "heur_5": "The structural information are, \n",
+        "heur_6": "The structural information are, \n",
+        "heur_7": "The structural information are, \n",
         "heur_8": "The format specification and description are \n",
         "heur_9": "The critical values and ranges are \n",
         "heur_10": "The structural information, patterns and statistics are \n"
