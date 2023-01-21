@@ -12,7 +12,7 @@ from nltk.translate.bleu_score import sentence_bleu, corpus_bleu, SmoothingFunct
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--job", type=str, choices=["linear", "zero-shot", "all", "oneshot"], default="oneshot")
-parser.add_argument("--log_file_path", default="downstream_tasks_20230119_manual_log/0_1_2_3", type=str, help="Please indicate the log file path")
+parser.add_argument("--log_file_path", default="downstream_tasks_20230120_self_augmented_p2_revision_log/heur_9", type=str, help="Please indicate the log file path")
 parser.add_argument("--model", default=["text003"], nargs="+", help="Please give the model results you want to evaluate")
 args = parser.parse_args()
 
@@ -107,6 +107,10 @@ def evaluate_individual_task(pair_list):
             acc = 0
             for i in range(len(raw_pred)):
                 acc_sample = 0
+                try:
+                    raw_pred[i] = raw_pred[i].split("The answer is ")[1].replace("\n", "")
+                except:
+                    raw_pred[i] = raw_pred[i]
                 grd_split = ground_truth[i].split("|")
                 for j in range(len(grd_split)):
                     if raw_pred[i].strip().__contains__(grd_split[j].strip()):
@@ -120,14 +124,16 @@ def evaluate_individual_task(pair_list):
             # Acc
             acc = 0
             for i in range(len(raw_pred)):
-                if raw_pred[i].strip().__contains__(ground_truth[i].strip()):
-                    acc += 1
-                else:
-                    raw_split = raw_pred[i].strip().split(",")
-                    for j in range(len(raw_split)):
-                        if string_similar(ground_truth[i].strip(), raw_split[j]) > 0.85:
+                try:
+                    if raw_pred[i].split("Answer: ")[1].__contains__(ground_truth[i].strip()):
+                        acc += 1
+                    else:
+                        if string_similar(ground_truth[i].strip(), raw_pred[i].split("Answer: ")[1]) > 0.85:
                             acc += 1
                             continue
+                except:
+                    if raw_pred[i].__contains__(ground_truth[i].strip()):
+                        acc += 1
             acc = acc / len(raw_pred)
             results[f"hybridqa_{pair['split']}"] = acc
 
@@ -164,7 +170,7 @@ def evaluate_individual_task(pair_list):
             acc = 0
             for i in range(len(raw_pred)):
                 try:
-                    raw_pred[i] = raw_pred[i].split("\n")[0].strip()
+                    raw_pred[i] = raw_pred[i].split("The answer is \n")[1]
                 except:
                     raw_pred[i].strip()
                 if raw_pred[i].__contains__("supported") or raw_pred[i].__contains__("1"):
@@ -181,10 +187,14 @@ def evaluate_individual_task(pair_list):
             acc = 0
             for i in range(len(raw_pred)):
                 try:
-                    raw_pred[i] = raw_pred[i].split("\n")[0].strip()
+                    raw_pred[i] = raw_pred[i].split("The answer is \n")[1]
                 except:
                     raw_pred[i].strip()
-                if str(raw_pred[i]) == str(ground_truth[i].strip()):
+                if raw_pred[i].__contains__("supported") or raw_pred[i].__contains__("1"):
+                    updated_pred[i] = "1"
+                if raw_pred[i].__contains__("0"):
+                    updated_pred[i] = "0"
+                if str(updated_pred[i]) == str(ground_truth[i].strip()):
                     acc += 1
             acc /= len(raw_pred)
             results[f"tabfact_{pair['split']}"] = acc

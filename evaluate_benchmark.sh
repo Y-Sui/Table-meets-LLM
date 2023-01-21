@@ -14,4 +14,7 @@
 #python evaluate_benchmark.py --task_group table --log_file_path table_benchmarks_20230119_1_shot_log --model text003 text002
 
 # 20230120_change-order
-python evaluate_benchmark.py --task_group table --log_file_path table_benchmarks_20230120_change_order_log --model text003
+#python evaluate_benchmark.py --task_group table --log_file_path table_benchmarks_20230120_change_order_log --model text003
+
+# 20230120_zero-shot
+python evaluate_benchmark.py --task_group table --log_file_path table_benchmarks_20230121_zero_shot_v2 --model text003
