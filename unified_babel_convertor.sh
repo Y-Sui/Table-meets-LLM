@@ -1,17 +1,3 @@
-#python unified_babel_convertor.py --task cosql --objective zero --split validation
-#python unified_babel_convertor.py --task dart --objective zero --split validation
-#python unified_babel_convertor.py --task tabfact --objective zero --split validation
-#python unified_babel_convertor.py --task feverous --objective zero --split validation
-#python unified_babel_convertor.py --task tabfact --objective zero --split validation
-#python unified_babel_convertor.py --task hybridqa --objective zero --split validation
-#python unified_babel_convertor.py --task spider --objective zero --split validation
-#python unified_babel_convertor.py --task totto --objective zero heur_0 heur_1 heur_2 heur_3 heur_3 heur_4 heur_5 heur_6 heur_7 --split validation
-#python unified_babel_convertor.py --task sql2text --objective zero --split validation
-#python unified_babel_convertor.py --task logic2text --objective zero --split validation
-#python unified_babel_convertor.py --task sqa --objective zero --split validation
-#python unified_babel_convertor.py --task webqsp --objective zero --split validation
-#python unified_babel_convertor.py --task gittables --objective zero --split validation
-
 # generate form downstream tasks
 python unified_babel_convertor.py --task formlm_opt formlm_qa formlm_block_type --objective zero --split train validation --unified --unified_file_output ./exps/downstream_tasks_form_20230115_log/
 
