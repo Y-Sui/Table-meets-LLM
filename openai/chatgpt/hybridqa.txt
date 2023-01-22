@@ -538,3 +538,173 @@ Bronze|Scotty James|2018 Pyeongchang|Snowboarding
 =>
 
 2019
+You are a brilliant table executor with the capbilities [retrieve], [input parsing], [metadata inference], [pattern understanding] who can understand the structural information of the table.
+<request>
+Aggregate both tabular information and text information to answer the question (Do not repeat the question, and shorten the answers as much as possible): 
+<question>
+What is the middle name of the player with the second most National Football League career rushing yards ?
+<context>
+List of National Football League career rushing yards leaders | Players with at least 10,000 rushing yards | Through end of 2019 season | This is a list of National Football League running backs by total career rushing yards. This list includes all running backs who have rushed for at least 10,000 yards. Emmitt Smith has held the all-time rushing yards record since 2002.
+<passage>
+passages: Emmitt Smith: Smith led the league in rushing and won the Super Bowl in the same year three times ( 1992 , 1993 , and 1995 ) when to that point it had never been done . | Walter Payton: Walter Jerry Payton ( July 25 , 1954 - November 1 , 1999 ) was an American professional football player who was a running back for the Chicago Bears of the National Football League ( NFL ) for thirteen seasons . | San Francisco 49ers: The team began play at Kezar Stadium in San Francisco before moving across town to Candlestick Park in 1970 and then to Levi 's Stadium in Santa Clara in 2014 . The 49ers won five Super Bowl championships between 1981 and 1994 , led by Hall of Famers Joe Montana , Jerry Rice , Ronnie Lott , Steve Young , and coaches Bill Walsh and George Seifert . | Denver Broncos: They have won eight AFC Championships ( 1977 , 1986 , 1987 , 1989 , 1997 , 1998 , 2013 , 2015 ) , and three Super Bowl championships ( 1997 ( XXXII ) , 1998 ( XXXIII ) , 2015 ( 50 ) ) , and share the NFL record for most Super Bowl losses ( 5 - tied with the New England Patriots ) . | 
+<table>
+Rank|Player|Team ( s ) by season|Carries|Yards
+1|Emmitt Smith|Dallas Cowboys ( 1990 - 2002 ) Arizona Cardinals ( 2003 - 2004 )|4,409|18,355
+2|Walter Payton|Chicago Bears ( 1975 - 1987 )|3,838|16,726
+3|Frank Gore|San Francisco 49ers ( 2005 - 2014 ) Indianapolis Colts ( 2015 - 2017 ) Miami Dolphins ( 2018 ) Buffalo Bills ( 2019 -present )|3,548|15,347
+4|Barry Sanders|Detroit Lions ( 1989 - 1998 )|3,062|15,269
+5|Adrian Peterson|Minnesota Vikings ( 2007 - 2016 ) New Orleans Saints ( 2017 ) Arizona Cardinals ( 2017 ) Washington Redskins ( 2018 -present )|3,036|14,216
+6|Curtis Martin|New England Patriots ( 1995 - 1997 ) New York Jets ( 1998 - 2005 )|3,518|14,101
+7|LaDainian Tomlinson|San Diego Chargers ( 2001 - 2009 ) New York Jets ( 2010 - 2011 )|3,174|13,684
+8|Jerome Bettis|St. Louis/L.A . Rams ( 1993 - 1995 ) Pittsburgh Steelers ( 1996 - 2005 )|3,479|13,662
+9|Eric Dickerson|Los Angeles Rams ( 1983 - 1987 ) Indianapolis Colts ( 1987 - 1991 ) Los Angeles Raiders ( 1992 ) Atlanta Falcons ( 1993 )|2,996|13,259
+10|Tony Dorsett|Dallas Cowboys ( 1977 - 1987 ) Denver Broncos ( 1988 )|2,936|12,739
+11|Jim Brown|Cleveland Browns ( 1957 - 1965 )|2,359|12,312
+12|Marshall Faulk|Indianapolis Colts ( 1994 - 1998 ) St. Louis Rams ( 1999 - 2005 )|2,836|12,279
+13|Edgerrin James|Indianapolis Colts ( 1999 - 2005 ) Arizona Cardinals ( 2006 - 2008 ) Seattle Seahawks ( 2009 )|3,028|12,246
+14|Marcus Allen|Los Angeles Raiders ( 1982 - 1992 ) Kansas City Chiefs ( 1993 - 1997 )|3,022|12,243
+15|Franco Harris|Pittsburgh Steelers ( 1972 - 1983 ) Seattle Seahawks ( 1984 )|2,949|12,120
+16|Thurman Thomas|Buffalo Bills ( 1988 - 1999 ) Miami Dolphins ( 2000 )|2,877|12,074
+17|Fred Taylor|Jacksonville Jaguars ( 1998 - 2008 ) New England Patriots ( 2009 - 2010 )|2,534|11,695
+18|Steven Jackson|St. Louis Rams ( 2004 - 2012 ) Atlanta Falcons ( 2013 - 2014 ) New England Patriots ( 2015 )|2,764|11,438
+19|John Riggins|New York Jets ( 1971 - 1975 ) Washington Redskins ( 1976 - 1985 )|2,916|11,352
+20|Corey Dillon|Cincinnati Bengals ( 1997 - 2003 ) New England Patriots ( 2004 - 2006 )|2,618|11,241
+
+The answer is 
+
+
+Jerry
+You are a brilliant table executor with the capbilities [retrieve], [input parsing], [metadata inference], [pattern understanding] who can understand the structural information of the table.
+<request>
+Aggregate both tabular information and text information to answer the question (Do not repeat the question, and shorten the answers as much as possible): 
+<question>
+What was the nickname of the gold medal winner in the men 's heavyweight greco-roman wrestling event of the 1932 Summer Olympics ?
+<context>
+Sweden at the 1932 Summer Olympics | Medalists | The following Swedish athletes won medals at the games . [ 3 ] | Sweden competed at the 1932 Summer Olympics in Los Angeles, United States. 81 competitors, 78 men and 3 women, took part in 51 events in 12 sports.
+<passage>
+passages: Rudolf Svensson: Johan Rudolf Starke Rudolf Svensson ( 27 March 1899 - 4 December 1978 ) was a Swedish wrestler . | 
+<table>
+Medal|Name|Sport
+Gold|Bertil Rönnmark|Shooting
+Gold|Johan Gabriel Oxenstierna|Modern pentathlon
+Gold|Eric Malmberg|Wrestling ( Greco-Roman )
+Gold|Ivar Johansson|Wrestling ( Greco-Roman )
+Gold|Rudolf Svensson|Wrestling ( Greco-Roman )
+Gold|Carl Westergren|Wrestling ( Greco-Roman )
+Gold|Ivar Johansson|Wrestling ( freestyle )
+Gold|Johan Richthoff|Wrestling ( freestyle )
+Gold|Tore Holm Martin Hindorff Olle Åkerlund Åke Bergqvist|Sailing
+Silver|Erik Svensson|Athletics
+Silver|Thure Ahlqvist|Boxing
+Silver|Bo Lindman|Modern pentathlon
+Silver|Thure Sjöstedt|Wrestling ( freestyle )
+Silver|Bertil Sandström Thomas Byström Gustaf Adolf Boltenstern , Jr|Equestrian
+Bronze|Allan Carlsson|Boxing
+Bronze|Axel Cadier|Wrestling ( Greco-Roman )
+Bronze|Einar Karlsson|Wrestling ( freestyle )
+Bronze|Gustaf Klarén|Wrestling ( freestyle )
+Bronze|Gunnar Asther Daniel Sundén-Cullberg|Sailing
+Bronze|Clarence von Rosen , Jr|Equestrian
+
+The answer is 
+
+
+Starke Rudolf
+You are a brilliant table executor with the capbilities [retrieve], [input parsing], [metadata inference], [pattern understanding] who can understand the structural information of the table.
+<request>
+Aggregate both tabular information and text information to answer the question (Do not repeat the question, and shorten the answers as much as possible): 
+<question>
+The driver who finished in position 4 in the 2004 United States Grand Prix was of what nationality ?
+<context>
+2004 United States Grand Prix | Classification -- Qualifying |  | The 2004 United States Grand Prix, officially the XXXIII Foster's United States Grand Prix, was a Formula One motor race held on June 20, 2004 at the Indianapolis Motor Speedway in Indianapolis, Indiana. It was the ninth round of the 2004 Formula One season. Rubens Barrichello started from pole position in his Ferrari ahead of teammate Michael Schumacher. However, following a start-line incident between five cars, four of whom retired as a result, Schumacher overtook Barrichello on the safety car restart on lap six, and despite a threat from Barrichello after the final pit stops, Schumacher held on to take his eighth win of the season. Takuma Sato became only the second Japanese driver to achieve a podium finish. The race saw two serious accidents caused by Michelin tyre failures in what would be a precedent for the 2005 United States Grand Prix, at which all Michelin-shod cars withdrew over safety concerns. First, Fernando Alonso's Renault speared off the track at the end of the pit straight on lap nine. Later, Ralf Schumacher's Williams suffered the same fate, but in the most dangerous part of the track, causing him to hit the wall at a ninety-degree angle rearwards. The impact left Schumacher with spinal fractures and concussion, which prevented him from racing until the 2004 Chinese Grand Prix, three months later.
+<passage>
+passages: Michael Schumacher: In 1995 he repeated the success , this time with a greater margin . In 1996 Schumacher moved to Ferrari , who had last won the Drivers ' Championship in 1979 , and helped them transform into the most successful team in Formula One history , as he came close to winning the 1997 and 1998 titles , before breaking his leg at the 1999 British Grand Prix , ending another title run . | British American Racing: Subsequently , they formed a partnership with Honda which lasted for the next six years . The team was named after British American Tobacco plc ( BAT ) , which owned and sponsored it in order to display its Lucky Strike and 555 brands . | Honda in Formula One: Honda withdrew at the end of 1992 after having achieved their targets . Honda returned again in 2000 , providing engines for British American Racing ( BAR ) . | Jenson Button: He went on to win a record-tying six of the first seven races of the 2009 season , securing the World Drivers ' Championship at the Brazilian Grand Prix , having led on points all season ; his success also helped Brawn GP to secure the World Constructors ' Championship . For 2010 , he moved to McLaren , partnering fellow British racer and former World Champion Lewis Hamilton . | Juan Pablo Montoya: He won the International F3000 championship in 1998 , the CART FedEx Championship Series in 1999 in his debut year in the series , and the IMSA WeatherTech SportsCar Championship in 2019 . His race wins include the Indianapolis 500 ( 2000 , 2015 ) , Grand Prix of Monaco ( 2003 ) , 24 Hours of Daytona ( 2007 , 2008 , 2013 ) , British Grand Prix ( 2005 ) , Italian Grand Prix ( 2001 , 2005 ) , Grand Prix of Long Beach ( 1999 ) , and the Race of Champions ( 2017 ) . | Williams Grand Prix Engineering: Williams started manufacturing its own cars the following year , and Switzerland 's Clay Regazzoni won Williams 's first race at the 1979 British Grand Prix . At the 1997 British Grand Prix , Canadian Jacques Villeneuve scored the team 's 100th race victory , making Williams one of only four teams in Formula One , alongside Ferrari , fellow British team McLaren , and Mercedes to win 100 races . | McLaren: McLaren Racing Limited is a British motor racing team based at the McLaren Technology Centre , Woking , Surrey , England . | Mercedes AMG High Performance Powertrains: Mercedes AMG High Performance Powertrains ( previously known as Ilmor Engineering and Mercedes-Benz High Performance Engines ) is a British Formula One engine manufacturer , owned by Mercedes-Benz . | Mark Webber: During two years with the generally uncompetitive team , Webber qualified on the front two rows of the grid several times and outperformed his teammates . His first F1 win was with Red Bull at the 2009 German Grand Prix , which followed second places at the 2009 Chinese Grand Prix , 2009 Turkish Grand Prix and 2009 British Grand Prix . | Cosworth: Cosworth is a British automotive engineering company founded in London in 1958 ; 62 years ago ( 1958 ) , specialising in high-performance internal combustion engines , powertrain , and electronics ; for automobile racing ( motorsport ) and mainstream automotive industries . | David Coulthard: He was runner-up in the 2001 Formula One World Drivers ' Championship , driving for McLaren . Coulthard began karting at the age of eleven and achieved early success before progressing to car racing in the British Formula Ford Championship and the Formula 3000 series . | 
+<table>
+Pos|No|Driver|Constructor|Time
+1|2|Rubens Barrichello|Ferrari|1:10.223
+2|1|Michael Schumacher|Ferrari|1:10.400
+3|10|Takuma Sato|BAR - Honda|1:10.601
+4|9|Jenson Button|BAR - Honda|1:10.820
+5|3|Juan Pablo Montoya|Williams - BMW|1:11.062
+6|4|Ralf Schumacher|Williams - BMW|1:11.106
+7|6|Kimi Räikkönen|McLaren - Mercedes|1:11.137
+8|17|Olivier Panis|Toyota|1:11.167
+9|8|Fernando Alonso|Renault|1:11.185
+10|14|Mark Webber|Jaguar - Cosworth|1:11.286
+11|16|Cristiano da Matta|Toyota|1:11.691
+12|5|David Coulthard|McLaren - Mercedes|1:12.026
+13|15|Christian Klien|Jaguar - Cosworth|1:12.170
+14|11|Giancarlo Fisichella|Sauber - Petronas|1:12.470
+15|12|Felipe Massa|Sauber - Petronas|1:12.721
+16|18|Nick Heidfeld|Jordan - Ford|1:13.147
+17|19|Giorgio Pantano|Jordan - Ford|1:13.375
+18|20|Gianmaria Bruni|Minardi - Cosworth|1:14.010
+19|21|Zsolt Baumgartner|Minardi - Cosworth|1:14.812
+20|7|Jarno Trulli|Renault|no time
+
+The answer is 
+
+
+British
+You are a brilliant table executor with the capbilities [retrieve], [input parsing], [metadata inference], [pattern understanding] who can understand the structural information of the table.
+<request>
+Aggregate both tabular information and text information to answer the question (Do not repeat the question, and shorten the answers as much as possible): 
+<question>
+What is that address of the museum located in a Victorian House in an area whose Architectural styles within the district include Craftsman Bungalow , Queen Anne , Stick style , Folk Victorian , Colonial Revival , American Foursquare and Neoclassical Revival ?
+<context>
+List of museums in Atlanta | Museums | Main article : List of museums in Georgia ( U.S. state ) | This list of museums in Atlanta is a list of museums, defined for this context as institutions (including nonprofit organizations, government entities, and private businesses) that collect and care for objects of cultural, artistic, scientific, or historical interest and make their collections or related exhibits available for public viewing. Also included are non-profit and university art galleries. Museums that exist only in cyberspace (i.e., virtual museums) are not included. This list includes museums in the City of Atlanta and the immediately adjacent communities of Druid Hills, and Hapeville at Atlanta's airport. For museums in the rest of Metro Atlanta and the rest of the state of Georgia, see List of museums in Georgia (U.S. state).
+<passage>
+passages: Hammonds House Museum: The Hammonds House Museum is a museum for African American fine art , located at 503 Peeples Street SW in the West End neighborhood of Atlanta , Georgia . | 
+<table>
+Name|Area|Type
+APEX Museum|Sweet Auburn|African American
+Atlanta Contemporary Art Center|West Midtown|Art
+Atlanta History Center|Buckhead|History
+Atlanta Monetary Museum|Midtown Atlanta|Numismatic
+Booth Western Art Museum|Cartersville|Art
+The Breman Museum|Midtown Atlanta|Jewish
+Callanwolde Fine Arts Center|Druid Hills|Art
+Center for Puppetry Arts|Midtown Atlanta|Puppetry
+Children 's Museum of Atlanta|Luckie Marietta|Children 's
+Clark Atlanta University Art Museum|West End|Art
+College Football Hall of Fame|Luckie Marietta|Sports
+David J. Sencer CDC Museum|Druid Hills|Medical
+Delta Flight Museum|Hapeville|Aviation
+Dignity Museum|College Park|Homelessness
+Fernbank Museum of Natural History|Druid Hills|Natural history
+Fernbank Science Center|Druid Hills|Science
+Ferst Center for the Arts|Midtown Atlanta|Art
+Georgia Capitol Museum|South Downtown|History
+Georgia Governor 's Mansion|Buckhead|Historic house
+Hammonds House Museum|West End|African American
+
+The answer is 
+
+
+503 Peeples Street SW
+You are a brilliant table executor with the capbilities [retrieve], [input parsing], [metadata inference], [pattern understanding] who can understand the structural information of the table.
+<request>
+Aggregate both tabular information and text information to answer the question (Do not repeat the question, and shorten the answers as much as possible): 
+<question>
+What place was achieved by the person who finished the Berlin marathon in 2:13.32 in 2011 the first time he competed in a marathon ?
+<context>
+2011 Berlin Marathon | Results -- Elite races | The men 's leading group at 24 km , with pacemakers in black and white Elite Men | The 2011 Berlin Marathon was the 38th edition of the annual marathon event and was held on Sunday 25 September on the streets of Berlin, Germany. The men's race was won by Patrick Makau of Kenya in a world record time of 2:03:38 hours. The women's winner was Florence Kiplagat, also from Kenya, won in a time of 2:19:44 hours, which made her the ninth fastest woman of all-time. It was the first marathon she had completed in her career. In total, 32,991 runners managed to finish the 2011 edition of the marathon, comprising 25,577 men and 7414 women.
+<passage>
+passages: Ricardo Serrano (athlete): At the 2011 IAAF World Cross Country Championships he was 89th overall . His marathon debut followed later that year and he was sixth at the 2011 Berlin Marathon with a time of 2:13.32 hours . | Spain: With an area of 505,990 km2 ( 195,360 sq mi ) , Spain is the largest country in Southern Europe , the second largest country in Western Europe and the European Union , and the fourth largest country in the European continent . By population ( about 47 million ) , Spain is the sixth largest in Europe and the fifth in the European Union . | 
+<table>
+Position|Athlete|Nationality
+1|Patrick Makau Musyoki|Kenya
+2|Stephen Kwelio Chemlany|Kenya
+3|Edwin Kimaiyo|Kenya
+4|Felix Limo|Kenya
+5|Scott Overall|United Kingdom
+6|Ricardo Serrano|Spain
+7|Pedro Nimo|Spain
+8|Simon Munyutu|France
+9|Driss El Himer|France
+10|Hendrick Ramaala|South Africa
+
+The answer is 
+
+
+sixth
