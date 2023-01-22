@@ -5,7 +5,7 @@ import jsonlines
 import os
 
 Task = "gittables"
-dataset = load_dataset("../unifiedSKG/gittables.py")
+dataset = load_dataset("../dataset_collection/gittables.py")
 
 # print(dataset)
 # print(dataset["validation"][0])

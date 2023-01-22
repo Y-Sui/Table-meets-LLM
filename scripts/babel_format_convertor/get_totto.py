@@ -9,7 +9,7 @@ import os
 import numpy as np
 
 Task = "totto"
-dataset = load_dataset('../unifiedSKG/totto.py')
+dataset = load_dataset('../dataset_collection/totto.py')
 print(dataset)
 print(dataset["validation"][0])
 

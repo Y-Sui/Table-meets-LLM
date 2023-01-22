@@ -5,7 +5,7 @@ import jsonlines
 import os
 
 Task = "tabfact"
-dataset = load_dataset('../unifiedSKG/tabfact.py', ignore_verifications=True)
+dataset = load_dataset('../dataset_collection/tabfact.py', ignore_verifications=True)
 print(dataset)
 print(dataset["validation"][0])
 

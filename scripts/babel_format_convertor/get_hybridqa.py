@@ -5,7 +5,7 @@ import jsonlines
 import os
 
 Task = "hybridqa"
-dataset = load_dataset('../unifiedSKG/hybridqa.py')
+dataset = load_dataset('../dataset_collection/hybridqa.py')
 print(dataset["validation"][0])
 
 Heuristics = {
