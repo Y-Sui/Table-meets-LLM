@@ -1,8 +1,0 @@
-python evaluate_form.py --file_name="public_forms_intents_20221206_instruction" --job="finetuned" --task="formlm"
-python evaluate_form.py --file_name="public_forms_intents_20221206_instruction" --job="inference" --task="formlm"
-python evaluate_form.py --file_name="public_forms_intents_20221206" --job="finetuned" --task="formlm"
-python evaluate_form.py --file_name="public_forms_intents_20221206" --job="inference" --task="formlm"
-python evaluate_form.py --file_name="atp_20221206_instruction" --job="finetuned" --task="atp"
-python evaluate_form.py --file_name="atp_20221206_instruction" --job="inference" --task="atp"
-python evaluate_form.py --file_name="atp_20221206" --job="finetuned" --task="atp"
-python evaluate_form.py --file_name="atp_20221206" --job="inference" --task="atp"

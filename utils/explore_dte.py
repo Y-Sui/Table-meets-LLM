@@ -11,7 +11,7 @@ import random
 # import model config
 model_path = download_dte(use_cached=True)
 dte = DTEEmbedding(os.path.join(model_path, "model.config"))
-task = ["spider", "totto", "tabfact"]
+task = ["spider", "totto", "tabfact"] # downstream tasks
 request = {
     "cosql": "Generate SQL based on the utterance and database information: ",
     "dart": "Generate natural language text from the given RDF triplets: ",
@@ -29,8 +29,10 @@ parser.add_argument("--file_name", type=str, default="atp_20221206_instruction")
 parser.add_argument("--topK", type=int, default="4")
 args = parser.parse_args()
 
+
 def generate_samples_embedding(Q, A):
     return generate_embeddings(dte, Q, A)
+
 
 def retrieve_few_shot(train_split, validation_split, topK, instruct, prompt_delimiter, completion_delimiter):
     random_sample_pair = random.sample(list(enumerate(train_split["Q"])), k=150) # random.sample
@@ -41,6 +43,7 @@ def retrieve_few_shot(train_split, validation_split, topK, instruct, prompt_deli
     training_split_embedding = generate_samples_embedding(train_split_q, train_split_a)
     validation_split_embedding = generate_samples_embedding(validation_split["Q"], validation_split["A"])
     return retrieve(validation_split_embedding, training_split_embedding, batch_size=16, topK=topK, instruct=instruct, prompt_delimiter=prompt_delimiter, completion_delimiter=completion_delimiter)
+
 
 def generate_few_shot_examples():
     train_Q, train_A, validation_Q, validation_A = [], [], [],[]
@@ -62,8 +65,10 @@ def generate_few_shot_examples():
             for single_example in few_shot_examples:
                 save_file.write(json.dumps(single_example) + "\n")
 
+
 def main():
     generate_few_shot_examples()
+
 
 if __name__ == "__main__":
     main()

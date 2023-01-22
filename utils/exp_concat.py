@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 
+
 def concat_json(args):
     # concat_json_file
     concat_data = []
@@ -66,6 +67,7 @@ def get_task_span():
         row_index.append({"start": int(row_index_number[0]), "end": int(row_index_number[1])})
     return task_file, row_index
 
+
 def retrieve_pair(output_dir):
     task_file, row_index = get_task_span()
     pair_list = []
@@ -80,6 +82,7 @@ def retrieve_pair(output_dir):
                 pred.append(generated)
         pair_list.append({"task": task, "prediction": pred, "ground_truth": grd, "error_list": err})
     return pair_list
+
 
 def phase_2_processing():
     raw_data = []
@@ -139,6 +142,7 @@ def phase_2_processing():
             raw_data[i]["prompt"] = raw_data[i]["prompt"].replace(request_idx, update_prompt)
             raw_data[i]["prompt"] = raw_data[i]["prompt"] + "\n<structure>\n" +structural_info[i] + "\n===>"
             f3.write(json.dumps(raw_data[i]) + "\n")
+
 
 def main():
     parser = argparse.ArgumentParser()

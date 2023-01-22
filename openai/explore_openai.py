@@ -5,11 +5,13 @@ import wandb
 from openai.wandb_logger import WandbLogger
 # openai.api_key
 # openai.api_key = "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"
-openai.api_key = "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"
+openai.api_key = "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"
 # explore tasks
 # TASK = ["multi_woz_dia"]
 # TASK = ["tabfact"]
-TASK = ["totto", "cosql", "dart", "gittables", "hybridqa", "multi_woz_dia", "multi_woz_intent", "spider", "sqa", "tabfact", "webqsp", "feverous", "logic2text", "sql2text"]
+# TASK = ["totto", "cosql", "dart", "gittables", "hybridqa", "multi_woz_dia", "multi_woz_intent", "spider", "sqa", "tabfact", "webqsp", "feverous", "logic2text", "sql2text"]
+
+from sklearn.metrics import accuracy_score
 
 # # sync the results from the script
 # WandbLogger.sync(
@@ -28,7 +30,7 @@ from tenacity import (
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
 
-@retry(wait=wait_random_exponential(min=1, max=60), stop=stop_after_attempt(6))
+@retry(wait=wait_random_exponential(min=1, max=60), stop=stop_after_attempt(10))
 def retrieval_ans(prompt):
     # generate openai.completion
     response = openai.Completion.create(
@@ -43,34 +45,53 @@ def retrieval_ans(prompt):
     return response["choices"][0]["text"]
 
 def main():
-    tasks = os.listdir("../generated")
-    tasks = list(filter(lambda x: x in TASK, tasks))
-    # wandb.init(project="LLMs + Structured Data", job_type="eval", entity="dki", group="Prompt_insights", name=f"sample_0_221230")
-    # prediction_table = wandb.Table(columns=["task", "prompt", "completion", "groundtruth"])
-    grd, pred = [], []
-    results = {}
-    for task in tasks:
-        prompt_file = f"../../generated/{task}/zero/validation.jsonl"
-        with open(prompt_file, "r", encoding="utf-8") as input_file:
-            for line in input_file:
-                sample = json.loads(line)
-                prompt = sample["prompt"] # prompt_test only consider the first prompt
-                ground_truth = sample["completion"]
-                completion = retrieval_ans(prompt)
-                results["prompt"] = prompt
-                results["pred"] = completion
-                results["grd"] = ground_truth
-                pp.pprint(results)
-                pred.append(completion)
-                grd.append(ground_truth)
-                # prediction_table.add_data(task, prompt, completion, ground_truth)
-                # with open(f"./{TASK[0]}.txt", "a", encoding="utf-8") as txt_f:
-                with open(f"case_0.txt", "a", encoding="utf-8") as txt_f:
-                    txt_f.write(task + "\n============================\n")
-                    txt_f.write(prompt + "\n")
-                    txt_f.write(completion + "\n")
-                    txt_f.write(str(ground_truth) + "\n")
+    ground_truth_list = []
+    predicted_list = []
+    with open("../generated/benchmark/table/feverous_cell_lookup_markdown_0.jsonl", "r") as f:
+        i = 0
+        for line in f:
+            i += 1
+            if i == 50:
                 break
+            sample = json.loads(line)
+            answer = retrieval_ans(sample["prompt"])
+            if answer.__contains__(":"):
+                predicted_list.append(answer.split(":")[1].replace("\n", ""))  # prompt_test only consider the first prompt
+            else:
+                predicted_list.append(answer.replace("\n", ""))
+            ground_truth_list.append(sample["completion"])
+
+    print(accuracy_score(ground_truth_list, predicted_list))
+
+# def main():
+#     tasks = os.listdir("../generated")
+#     tasks = list(filter(lambda x: x in TASK, tasks))
+#     # wandb.init(project="LLMs + Structured Data", job_type="eval", entity="dki", group="Prompt_insights", name=f"sample_0_221230")
+#     # prediction_table = wandb.Table(columns=["task", "prompt", "completion", "groundtruth"])
+#     grd, pred = [], []
+#     results = {}
+#     for task in tasks:
+#         prompt_file = f"../../generated/{task}/zero/validation.jsonl"
+#         with open(prompt_file, "r", encoding="utf-8") as input_file:
+#             for line in input_file:
+#                 sample = json.loads(line)
+#                 prompt = sample["prompt"] # prompt_test only consider the first prompt
+#                 ground_truth = sample["completion"]
+#                 completion = retrieval_ans(prompt)
+#                 results["prompt"] = prompt
+#                 results["pred"] = completion
+#                 results["grd"] = ground_truth
+#                 pp.pprint(results)
+#                 pred.append(completion)
+#                 grd.append(ground_truth)
+#                 # prediction_table.add_data(task, prompt, completion, ground_truth)
+#                 # with open(f"./{TASK[0]}.txt", "a", encoding="utf-8") as txt_f:
+#                 with open(f"case_0.txt", "a", encoding="utf-8") as txt_f:
+#                     txt_f.write(task + "\n============================\n")
+#                     txt_f.write(prompt + "\n")
+#                     txt_f.write(completion + "\n")
+#                     txt_f.write(str(ground_truth) + "\n")
+#                 break
 
     # for i in range(len(pred)):
     #     # Acc
