@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from tabulate import tabulate
 
+
 class StructuredDataLinearize:
     """Expects the structured data with the following format:
 
@@ -12,77 +13,89 @@ class StructuredDataLinearize:
                     "header": example['table']['header'],
                     "rows": example['table']['rows'],
                     "caption": ""
-                }5
+                }
             }
     """
+
     def __init__(self):
-        self.change_order = None
-        self.use_partition_mark = None
-        self.format_explanation = None
-        self.structured_data_dict = None
+        self.end_prompt = "The answer is "
 
-    def retrieve_linear_function(self, func, use_partition_mark, format_explanation, change_order, swap_input_order, structured_data_dict):
+    def retrieve_linear_function(self, func, use_structure_mark, add_grammar, change_order, structured_data_dict):
         self.structured_data_dict = structured_data_dict
-        self.use_partition_mark = use_partition_mark
-        self.format_explanation = format_explanation # add grammer description of the format
-        self.change_order = change_order # if true, the table will change from row-major to column major
-        self.swap_input_order = swap_input_order
-
-        linear_func_dict = {
+        self.use_structure_mark = use_structure_mark
+        self.add_grammar = add_grammar  # add grammer description of the format
+        self.change_order = change_order  # if true, the table will change from row-major to column major
+        dict = {
             "markdown": self.linearize_markdown,
             "markdown_grid": self.linearize_markdown_grid,
             "xml": self.linearize_xml,
-            "html": self.linearize_html, # html paper
+            "html": self.linearize_html,
             "json": self.linearize_json,
             "latex": self.linearize_latex,
-            "nl_sep": self.linear_nl_sep, # strubert paper row-major linearization
+            "nl_sep": self.linear_nl_sep,
         }
-        return linear_func_dict[func]()
+        return dict[func]()
 
     def linearize_markdown(self):
-        if self.use_partition_mark:
-            additional_knowledge = "<title>\n" + "".join(self.structured_data_dict["title"]) + "\n" + "<context>\n" + "".join(self.structured_data_dict["context"]) + "\n" + "<caption>\n" + "".join("".join(self.structured_data_dict["table"]["caption"])) + "\n"
+        if self.use_structure_mark:
+            additional_knowledge = "<title>\n" + "".join(
+                self.structured_data_dict["title"]) + "\n" + "<context>\n" + "".join(
+                self.structured_data_dict["context"]) + "\n" + "<caption>\n" + "".join(
+                "".join(self.structured_data_dict["table"]["caption"])) + "\n"
         else:
-            additional_knowledge = "".join(self.structured_data_dict["title"]) + "\n" + "".join(self.structured_data_dict["context"]) + "\n" + "".join(self.structured_data_dict["table"]["caption"]) + "\n"
+            additional_knowledge = "".join(self.structured_data_dict["title"]) + "\n" + "".join(
+                self.structured_data_dict["context"]) + "\n" + "".join(
+                self.structured_data_dict["table"]["caption"]) + "\n"
         if self.change_order:
-            structured_data = pd.DataFrame(np.array(self.structured_data_dict['table']['rows']).T, index=self.structured_data_dict['table']['header'])
+            structured_data = pd.DataFrame(np.array(self.structured_data_dict['table']['rows']).T,
+                                           index=self.structured_data_dict['table']['header'])
             structured_data_markdown = tabulate(structured_data, tablefmt='pipe', showindex=True)
         else:
             structured_data = pd.DataFrame(self.structured_data_dict['table']['rows'])
-            structured_data_markdown = tabulate(structured_data, headers=self.structured_data_dict['table']['header'], tablefmt='pipe', showindex=True)
+            structured_data_markdown = tabulate(structured_data, headers=self.structured_data_dict['table']['header'],
+                                                tablefmt='pipe', showindex=True)
 
-        if self.format_explanation:
+        if self.add_grammar:
             grammar = "<Markdown grammar>\n To add a table, use three or more hyphens (---) to create each column’s header, and use pipes (|) to separate each column, every cell is separated by pipe \n"
-            additional_knowledge += grammar
-
-        if self.swap_input_order:
-            return structured_data_markdown + additional_knowledge + "\n"
-        return additional_knowledge + structured_data_markdown + "\n"
+            return additional_knowledge + grammar + structured_data_markdown + "\n" + self.end_prompt
+        else:
+            return additional_knowledge + structured_data_markdown + "\n" + self.end_prompt
 
     def linearize_markdown_grid(self):
-        if self.use_partition_mark:
-            additional_knowledge = "<title>\n" + "".join(self.structured_data_dict["title"]) + "\n" + "<context>\n" + "".join(self.structured_data_dict["context"]) + "\n" + "<caption>\n" + "".join(self.structured_data_dict["table"]["caption"]) + "\n"
+        if self.use_structure_mark:
+            additional_knowledge = "<title>\n" + "".join(
+                self.structured_data_dict["title"]) + "\n" + "<context>\n" + "".join(
+                self.structured_data_dict["context"]) + "\n" + "<caption>\n" + "".join(
+                self.structured_data_dict["table"]["caption"]) + "\n"
         else:
-            additional_knowledge = "".join(self.structured_data_dict["title"]) + "\n" + "".join(self.structured_data_dict["context"]) + "\n" + "".join(self.structured_data_dict["table"]["caption"]) + "\n"
+            additional_knowledge = "".join(self.structured_data_dict["title"]) + "\n" + "".join(
+                self.structured_data_dict["context"]) + "\n" + "".join(
+                self.structured_data_dict["table"]["caption"]) + "\n"
         if self.change_order:
-            structured_data = pd.DataFrame(np.array(self.structured_data_dict['table']['rows']).T, index=self.structured_data_dict['table']['header'])
+            structured_data = pd.DataFrame(np.array(self.structured_data_dict['table']['rows']).T,
+                                           index=self.structured_data_dict['table']['header'])
             structured_data_markdown = tabulate(structured_data, tablefmt='pipe', showindex=True)
         else:
             structured_data = pd.DataFrame(self.structured_data_dict['table']['rows'])
-            structured_data_markdown = tabulate(structured_data, headers=self.structured_data_dict['table']['header'], tablefmt='grid', showindex=True)
-        if self.format_explanation:
+            structured_data_markdown = tabulate(structured_data, headers=self.structured_data_dict['table']['header'],
+                                                tablefmt='grid', showindex=True)
+        if self.add_grammar:
             grammar = "<Markdown grammar>\n To add a table, use three or more hyphens (---) to create each column’s header, and use pipes (|) to separate each column, every cell is separated by pipe \n" \
                       "Grid is like tables formatted by Emacs' table.el package. It corresponds to grid_tables in Pandoc Markdown extensions\n"
-            additional_knowledge += grammar
-        if self.swap_input_order:
-            return structured_data_markdown + additional_knowledge + "\n"
-        return additional_knowledge + structured_data_markdown + "\n"
+            return additional_knowledge + grammar + structured_data_markdown + "\n" + self.end_prompt
+        else:
+            return additional_knowledge + structured_data_markdown + "\n" + self.end_prompt
 
     def linearize_xml(self):
-        if self.use_partition_mark:
-            additional_knowledge = "<title>\n" + "".join(self.structured_data_dict["title"]) + "\n" + "<context>\n" + "".join(self.structured_data_dict["context"]) + "\n" + "<caption>\n" + "".join(self.structured_data_dict["table"]["caption"]) + "\n"
+        if self.use_structure_mark:
+            additional_knowledge = "<title>\n" + "".join(
+                self.structured_data_dict["title"]) + "\n" + "<context>\n" + "".join(
+                self.structured_data_dict["context"]) + "\n" + "<caption>\n" + "".join(
+                self.structured_data_dict["table"]["caption"]) + "\n"
         else:
-            additional_knowledge = "".join(self.structured_data_dict["title"]) + "\n" + "".join(self.structured_data_dict["context"]) + "\n" + "".join(self.structured_data_dict["table"]["caption"]) + "\n"
+            additional_knowledge = "".join(self.structured_data_dict["title"]) + "\n" + "".join(
+                self.structured_data_dict["context"]) + "\n" + "".join(
+                self.structured_data_dict["table"]["caption"]) + "\n"
         header = self.structured_data_dict['table']['header']
         for i in range(len(header)):
             header[i] = "_".join(header[i].split())
@@ -92,63 +105,97 @@ class StructuredDataLinearize:
         else:
             structured_data = pd.DataFrame(self.structured_data_dict['table']['rows'])
             structured_data_xml = structured_data.to_xml()
-        if self.format_explanation:
+
+        if self.add_grammar:
             grammar = "<XML grammar>\n <?xml version='1.0' encoding='utf-8'?>\n<data>\n  <row>\n    <index>0</index>\n    <column_1>2</<column_1>>\n  </row>\n  <row>\n    <index>1</index>\n    <column_2>4</column_2>\n  </row>\n</data>"
-            additional_knowledge += grammar
-        if self.swap_input_order:
-            return structured_data_xml + additional_knowledge + "\n"
-        return additional_knowledge + structured_data_xml + "\n"
+            return additional_knowledge + grammar + structured_data_xml + "\n" + self.end_prompt
+        else:
+            return additional_knowledge + structured_data_xml + "\n" + self.end_prompt
 
     def linearize_html(self):
-        if self.use_partition_mark:
-            additional_knowledge = "<title>\n" + "".join(self.structured_data_dict["title"]) + "\n" + "<context>\n" + "".join(self.structured_data_dict["context"]) + "\n" + "<caption>\n" + "".join(self.structured_data_dict["table"]["caption"]) + "\n"
+        if self.use_structure_mark:
+            additional_knowledge = "<title>\n" + "".join(self.structured_data_dict["title"]) \
+                if self.structured_data_dict["title"] != "" else ""
+
+            additional_knowledge += "\n" + "<context>\n" + "".join(self.structured_data_dict["context"]) \
+                if self.structured_data_dict["context"] != "" else ""
+
+            additional_knowledge += "\n" + "<caption>\n" + "".join(
+                "".join(self.structured_data_dict["table"]["caption"])) \
+                if self.structured_data_dict["table"]["caption"] != "" else ""
+            if additional_knowledge != "":
+                additional_knowledge += "\n"
         else:
-            additional_knowledge = "".join(self.structured_data_dict["title"]) + "\n" + "".join(self.structured_data_dict["context"]) + "\n" + "".join(self.structured_data_dict["table"]["caption"]) + "\n"
+            additional_knowledge = "".join(self.structured_data_dict["title"]) + "\n" + "".join(
+                self.structured_data_dict["context"]) + "\n" + "".join(
+                self.structured_data_dict["table"]["caption"]) + "\n"
+
+        rows = len(self.structured_data_dict['table']['rows'])
+        columns = len(self.structured_data_dict['table']['rows'][0])
+        additional_knowledge += "\n" + f"The table has {rows} rows and {columns} columns \n"
+
+
         if self.change_order:
-            structured_data = pd.DataFrame(np.array(self.structured_data_dict['table']['rows']).T, index=self.structured_data_dict['table']['header'])
-            structured_data_html = structured_data.to_html(header=True)
+            header = False if len(self.structured_data_dict['table']['header']) == 1 and \
+                              self.structured_data_dict['table']['header'][0] == "" else True
+            structured_data = pd.DataFrame(np.array(self.structured_data_dict['table']['rows']).T,
+                                           index=self.structured_data_dict['table']['header'])
+            structured_data_html = structured_data.to_html(header=header)
         else:
-            structured_data = pd.DataFrame(self.structured_data_dict['table']['rows'], columns=self.structured_data_dict['table']['header'])
-            structured_data_html = structured_data.to_html(header=True)
-        if self.format_explanation:
+            header = False if len(self.structured_data_dict['table']['header']) == 1 and \
+                              self.structured_data_dict['table']['header'][0] == "" else True
+            structured_data = pd.DataFrame(self.structured_data_dict['table']['rows'],
+                                           columns=self.structured_data_dict['table']['header'])
+            structured_data_html = structured_data.to_html(header=header)
+        if self.add_grammar:
             grammar = "<HTML grammar>\n Each table cell is defined by a <td> and a </td> tag.\n Each table row starts with a <tr> and ends with a </tr> tag.\n th stands for table header.\n"
-            additional_knowledge += grammar
-        if self.swap_input_order:
-            return structured_data_html + additional_knowledge + "\n"
-        return additional_knowledge + structured_data_html + "\n"
+            return additional_knowledge + grammar + structured_data_html + "\n" + self.end_prompt
+        else:
+            return additional_knowledge + structured_data_html + "\n" + self.end_prompt
 
     def linearize_json(self):
         # convert a json file to string, already have the structure mark
-        if self.format_explanation:
+        if self.add_grammar:
             grammar = "<JSON grammer>\n JSON is built of a collection of name/value pairs. Each pair is key-value\n"
             return grammar + str(self.structured_data_dict)
         else:
             return str(self.structured_data_dict)
 
     def linearize_latex(self):
-        if self.use_partition_mark:
-            additional_knowledge = "<title>\n" + "".join(self.structured_data_dict["title"]) + "\n" + "<context>\n" + "".join(self.structured_data_dict["context"]) + "\n" + "<caption>\n" + "".join(self.structured_data_dict["table"]["caption"]) + "\n"
+        if self.use_structure_mark:
+            additional_knowledge = "<title>\n" + "".join(
+                self.structured_data_dict["title"]) + "\n" + "<context>\n" + "".join(
+                self.structured_data_dict["context"]) + "\n" + "<caption>\n" + "".join(
+                self.structured_data_dict["table"]["caption"]) + "\n"
         else:
-            additional_knowledge = "".join(self.structured_data_dict["title"]) + "\n" + "".join(self.structured_data_dict["context"]) + "\n" + "".join(self.structured_data_dict["table"]["caption"]) + "\n"
+            additional_knowledge = "".join(self.structured_data_dict["title"]) + "\n" + "".join(
+                self.structured_data_dict["context"]) + "\n" + "".join(
+                self.structured_data_dict["table"]["caption"]) + "\n"
         if self.change_order:
-            structured_data = pd.DataFrame(np.array(self.structured_data_dict['table']['rows']).T, index=self.structured_data_dict['table']['header'])
+            structured_data = pd.DataFrame(np.array(self.structured_data_dict['table']['rows']).T,
+                                           index=self.structured_data_dict['table']['header'])
             structured_data_latex = structured_data.to_latex()
         else:
-            structured_data = pd.DataFrame(self.structured_data_dict['table']['rows'], columns=self.structured_data_dict['table']['header'])
+            structured_data = pd.DataFrame(self.structured_data_dict['table']['rows'],
+                                           columns=self.structured_data_dict['table']['header'])
             structured_data_latex = structured_data.to_latex()
-        if self.format_explanation:
+        if self.add_grammar:
             grammar = "<Latex grammar>\n \begin{tabular} starts the table environment and the curly braces denote the alignment of the columns.\n |c|c|c| means that the table has three columns and each column is center-aligned.\n " \
                       "\hline creates a horizontal line.\n The text in between the & symbols is the content of the cells.\n '\\' is used to end a row.\n \end{tabular} ends the table environment.\n"
-            additional_knowledge += grammar
-        if self.swap_input_order:
-            return structured_data_latex + additional_knowledge + "\n"
-        return additional_knowledge + structured_data_latex + "\n"
+            return additional_knowledge + grammar + structured_data_latex + "\n" + self.end_prompt
+        else:
+            return additional_knowledge + structured_data_latex + "\n" + self.end_prompt
 
     def linear_nl_sep(self):
-        if self.use_partition_mark:
-            additional_knowledge = "<title>\n" + "".join(self.structured_data_dict["title"]) + "\n" + "<context>\n" + "".join(self.structured_data_dict["context"]) + "\n" + "<caption>\n" + "".join(self.structured_data_dict["table"]["caption"]) + "\n"
+        if self.use_structure_mark:
+            additional_knowledge = "<title>\n" + "".join(
+                self.structured_data_dict["title"]) + "\n" + "<context>\n" + "".join(
+                self.structured_data_dict["context"]) + "\n" + "<caption>\n" + "".join(
+                self.structured_data_dict["table"]["caption"]) + "\n"
         else:
-            additional_knowledge = "".join(self.structured_data_dict["title"]) + "\n" + "".join(self.structured_data_dict["context"]) + "\n" + "".join(self.structured_data_dict["table"]["caption"]) + "\n"
+            additional_knowledge = "".join(self.structured_data_dict["title"]) + "\n" + "".join(
+                self.structured_data_dict["context"]) + "\n" + "".join(
+                self.structured_data_dict["table"]["caption"]) + "\n"
         if self.change_order:
             header = self.structured_data_dict["header"]
             reversed_table = np.array(self.structured_data_dict['table']['rows']).T
@@ -162,9 +209,8 @@ class StructuredDataLinearize:
             for i in range(len(self.structured_data_dict["table"]["rows"])):
                 cells.append("|".join(self.structured_data_dict["table"]["rows"][i]) + "\n")
             structured_data_nl_sep = header + "".join(cells)
-        if self.format_explanation:
+        if self.add_grammar:
             grammar = "<Grammar>\n Each table cell is separated by | , the column idx starts from 0, .\n"
-            additional_knowledge += grammar
-        if self.swap_input_order:
-            return structured_data_nl_sep + additional_knowledge + "\n"
-        return additional_knowledge + structured_data_nl_sep + "\n"
+            return additional_knowledge + grammar + structured_data_nl_sep + "\n" + self.end_prompt
+        else:
+            return additional_knowledge + structured_data_nl_sep + "\n" + self.end_prompt
