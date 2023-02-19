@@ -612,52 +612,55 @@ def task_specific_babel_convertor():
         unified_dict = {"content": [], "task": [], "objective": []}
     babel_convertor = BabelConvertor()
 
+    split = args.split[0]
+    obj = args.objective[0]
+    mode = ""
+
     for task in args.task:
-        for obj in args.objective:
-            for linear_func in args.linearize_list:
-                for split in args.split:
-                    structured_type = get_keys(DATASETS, task)[0]
-                    # set up the instruction for the prompt design (prompt engineering-->role prompting)
-                    if args.use_role_prompting:
-                        args.instruction = f"You are a brilliant {structured_type} executor with the capbilities [retrieve], [input parsing], [metadata inference], [pattern understanding] who can understand the structural information of the {structured_type}.\n"
-                    else:
-                        args.instruction = ""
-                    babel_convertor.set_split_obj(task, structured_type, split, obj, args.instruction,
-                                                  linear_func, args.use_partition_mark, args.use_format_explanation,
-                                                  args.heuristic
-                                                  )
-                    # set the validation mode
-                    if args.use_partition_mark and args.use_role_prompting and args.use_format_explanation:
-                        mode = f"{linear_func}_0_1_3"
-                    elif args.use_partition_mark and args.use_format_explanation:
-                        mode = f"{linear_func}_0_1"
-                    elif args.use_partition_mark and args.use_role_prompting:
-                        mode= f"{linear_func}_0_3"
-                    elif args.use_format_explanation and args.use_role_prompting:
-                        mode = f"{linear_func}_1_3"
-                    elif args.use_role_prompting:
-                        mode = f"{linear_func}_3"
-                    elif args.use_partition_mark:
-                        mode = f"{linear_func}_0"
-                    elif args.use_format_explanation:
-                        mode = f"{linear_func}_1"
-                    elif args.change_order:
-                        mode = f"{linear_func}_2"
-                    else:
-                        mode = f"{linear_func}"
+        for linear_func in args.linearize_list:
+            structured_type = get_keys(DATASETS, task)[0]
+            # set up the instruction for the prompt design (prompt engineering-->role prompting)
+            if args.use_role_prompting:
+                args.instruction = f"You are a brilliant {structured_type} executor with the capbilities [retrieve], [input parsing], [metadata inference], [pattern understanding] who can understand the structural information of the {structured_type}.\n"
+            else:
+                args.instruction = ""
+            babel_convertor.set_split_obj(task, structured_type, split, obj, args.instruction,
+                                          linear_func, args.use_partition_mark, args.use_format_explanation,
+                                          args.heuristic
+                                          )
+            # set the validation mode
+            if args.use_partition_mark and args.use_role_prompting and args.use_format_explanation:
+                mode = f"{linear_func}_0_1_3"
+            elif args.use_partition_mark and args.use_format_explanation:
+                mode = f"{linear_func}_0_1"
+            elif args.use_partition_mark and args.use_role_prompting:
+                mode= f"{linear_func}_0_3"
+            elif args.use_format_explanation and args.use_role_prompting:
+                mode = f"{linear_func}_1_3"
+            elif args.use_role_prompting:
+                mode = f"{linear_func}_3"
+            elif args.use_partition_mark:
+                mode = f"{linear_func}_0"
+            elif args.use_format_explanation:
+                mode = f"{linear_func}_1"
+            elif args.change_order:
+                mode = f"{linear_func}_2"
+            else:
+                mode = f"{linear_func}"
 
-                    # # save raw jsonl file
-                    # save_raw_jsonl(task, split, mode)
+            # # save raw jsonl file
+            # save_raw_jsonl(task, split, mode)
 
-                    # retrieve the content sample list
-                    content_list = babel_convertor.retrieve_sample_list()
-                    if args.unified:
-                        unified_dict["content"].append(content_list)
-                        unified_dict["task"].append(task)
-                        unified_dict["objective"].append(obj)
-                    logging.info(f"Task-{task} Objective-{obj} Split-{split} has been saved..")
-                    # save parsed jsonl
-                    save_jsonl(obj, task, split, content_list, mode)
+            # retrieve the content sample list
+            content_list = babel_convertor.retrieve_sample_list()
+            if args.unified:
+                unified_dict["content"].append(content_list)
+                unified_dict["task"].append(task)
+                unified_dict["objective"].append(obj)
+            logging.info(f"Task-{task} Objective-{obj} Split-{split} Linear-{linear_func} has been saved..")
+            # save parsed jsonl
+            save_jsonl(obj, task, split, content_list, mode)
+
     if args.unified:
         save_unified_jsonl(args.unified_file_output, unified_dict, mode)
         logging.info(f"unified version has been saved")

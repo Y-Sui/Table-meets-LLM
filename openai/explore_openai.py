@@ -39,13 +39,14 @@ def retrieval_ans(prompt):
         top_p=1,
         frequency_penalty=0.0,
         presence_penalty=0.0,
+        logprobs=3,
     )
     return response["choices"][0]["text"]
 
 def main():
     ground_truth_list = []
     predicted_list = []
-    with open("../generated/benchmark/table/feverous_cell_lookup_markdown_0.jsonl", "r") as f:
+    with open("../generated/benchmark/table/feverous_cell_lookup_markdown_0_1_3.jsonl", "r") as f:
         i = 0
         for line in f:
             i += 1
