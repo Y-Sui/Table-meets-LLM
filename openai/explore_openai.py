@@ -4,8 +4,6 @@ import openai
 import wandb
 from openai.wandb_logger import WandbLogger
 # openai.api_key
-# openai.api_key = "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"
-openai.api_key = "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"
 # explore tasks
 # TASK = ["multi_woz_dia"]
 # TASK = ["tabfact"]

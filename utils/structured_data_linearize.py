@@ -23,7 +23,7 @@ class StructuredDataLinearize:
     def retrieve_linear_function(self, func, use_structure_mark, add_grammar, change_order, structured_data_dict):
         self.structured_data_dict = structured_data_dict
         self.use_structure_mark = use_structure_mark
-        self.add_grammar = add_grammar  # add grammer description of the format
+        self.add_grammar = add_grammar  # add grammar description of the format
         self.change_order = change_order  # if true, the table will change from row-major to column major
         dict = {
             "markdown": self.linearize_markdown,
