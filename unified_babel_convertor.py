@@ -44,7 +44,7 @@ class BabelConvertor:
         return training_set[idx]
 
     def set_split_obj(self, task: str, structured_type: str, split: str, objective: str, instruction: str,
-                      linearize_func: str, use_structure_mark: bool, add_grammar: bool, heuristic: str):
+                      linearize_func: str, use_partition_mark: bool, use_format_explanation: bool, heuristic: str):
         self.prompt_input = []  # refresh when init set_split_obj
         self.split = split
         self.objective = objective
@@ -52,11 +52,11 @@ class BabelConvertor:
         self.data_type = structured_type
         self.instruct = instruction
         self.linearize_func = linearize_func
-        self.use_structure_mark = use_structure_mark
-        self.add_grammar = add_grammar
+        self.use_partition_mark = use_partition_mark
+        self.use_format_explanation = use_format_explanation
         self.heuristic = heuristic
         try:
-            self.dataset = load_dataset(f"./scripts/unifiedSKG/{task}.py", ignore_verifications=True)
+            self.dataset = load_dataset(f"./scripts/dataset_collection/{task}.py", ignore_verifications=True)
         except:
             if self.task.__contains__("multi"):
                 huggingface_hub = "multi_woz_22"
@@ -86,15 +86,9 @@ class BabelConvertor:
             self.flag = 1
 
     def retrieve_sample_list(self):
-        dict = {"feverous": self.retrieve_feverous, "dart": self.retrieve_dart, "cosql": self.retrieve_cosql,
-                "gittables": self.retrieve_gittables, "hybridqa": self.retrieve_hybridqa,
-                "logic2text": self.retrieve_logic2text, "sql2text": self.retrieve_sql2text,
-                "multi_woz_dia": self.retrieve_multi_woz_dia, "multi_woz_intent": self.retrieve_multi_woz_intent,
-                "spider": self.retrieve_spider, "totto": self.retrieve_totto, "tabfact": self.retrieve_tabfact,
-                "sqa": self.retrieve_sqa, "webqsp": self.retrieve_webqsp,
-                "formlm_opt": self.retrieve_formlm_opt_recommend,
-                "formlm_qa": self.retrieve_formlm_qa_recommend,
-                "formlm_block_type": self.retrieve_formlm_block_type_classification}
+        dict = {"feverous": self.retrieve_feverous, "hybridqa": self.retrieve_hybridqa,
+                "totto": self.retrieve_totto, "tabfact": self.retrieve_tabfact,
+                "sqa": self.retrieve_sqa}
         return dict[self.task]()
 
     # def retrieve_formlm(self):
@@ -155,8 +149,8 @@ class BabelConvertor:
                               }
                     }
             ret = self.linearizer.retrieve_linear_function(self.linearize_func,
-                                                           self.use_structure_mark,
-                                                           self.add_grammar,
+                                                           self.use_partition_mark,
+                                                           self.use_format_explanation,
                                                            False, data)
             return ret
 
@@ -225,8 +219,8 @@ class BabelConvertor:
                               }
                     }
             ret = self.linearizer.retrieve_linear_function(self.linearize_func,
-                                                           self.use_structure_mark,
-                                                           self.add_grammar,
+                                                           self.use_partition_mark,
+                                                           self.use_format_explanation,
                                                            False, data)
             return ret
 
@@ -287,8 +281,8 @@ class BabelConvertor:
                               }
                     }
             ret = self.linearizer.retrieve_linear_function(self.linearize_func,
-                                                           self.use_structure_mark,
-                                                           self.add_grammar,
+                                                           self.use_partition_mark,
+                                                           self.use_format_explanation,
                                                            False, data)
             return ret
 
@@ -344,8 +338,8 @@ class BabelConvertor:
                               }
                     }
             ret = self.linearizer.retrieve_linear_function(self.linearize_func,
-                                                           self.use_structure_mark,
-                                                           self.add_grammar,
+                                                           self.use_partition_mark,
+                                                           self.use_format_explanation,
                                                            False, data)
             return ret
 
@@ -430,8 +424,8 @@ class BabelConvertor:
                     }
 
             ret = self.linearizer.retrieve_linear_function(self.linearize_func,
-                                                           self.use_structure_mark,
-                                                           self.add_grammar,
+                                                           self.use_partition_mark,
+                                                           self.use_format_explanation,
                                                            False, data)
 
             if len(highlight_info) > 0:
@@ -523,9 +517,9 @@ def get_keys(dict, value):
     return [k for k, v in dict.items() if value in v]
 
 
-def save_raw_jsonl(task: str, split_set: str):
+def save_raw_jsonl(task: str, split_set: str, mode: str):
     try:
-        dataset = load_dataset(f"./scripts/unifiedSKG/{task}.py", ignore_verifications=True)
+        dataset = load_dataset(f"./scripts/dataset_collection/{task}.py", ignore_verifications=True)
     except FileNotFoundError:
         if task.__contains__("multi"):
             huggingface_hub = "multi_woz_22"
@@ -547,7 +541,7 @@ def save_raw_jsonl(task: str, split_set: str):
             dataset = load_dataset(huggingface_hub, ignore_verifications=True)
 
     os.makedirs(f"./generated/{task}/raw/", exist_ok=True)
-    with open(f"./generated/{task}/raw/{split_set}.jsonl", "w") as outfile:
+    with open(f"./generated/{task}/raw/{split_set}_{mode}.jsonl", "w") as outfile:
         if task.__contains__("formlm") is False:
             for example in dataset[split_set]:
                 outfile.write(json.dumps(example) + "\n")
@@ -556,18 +550,18 @@ def save_raw_jsonl(task: str, split_set: str):
                 outfile.write(json.dumps(example) + "\n")
 
 
-def save_jsonl(objective: str, task: str, split_set: str, content_list: list):
+def save_jsonl(objective: str, task: str, split_set: str, content_list: list, mode: str):
     os.makedirs(f"./generated/{task}/{objective}/", exist_ok=True)
-    with open(f"./generated/{task}/{objective}/{split_set}.jsonl", "w") as outfile:
+    with open(f"./generated/{task}/{objective}/{split_set}_{mode}.jsonl", "w") as outfile:
         for content in content_list:
             outfile.write(json.dumps(content) + "\n")
 
 
-def save_unified_jsonl(output_path: str, unified_dict: dict):
+def save_unified_jsonl(output_path: str, unified_dict: dict, mode: str):
     os.makedirs(output_path, exist_ok=True)
     content_list = []
     split = 0
-    with open(f"{output_path}/validation.txt", "a", encoding="utf-8") as log_f:
+    with open(f"{output_path}/validation_{mode}.txt", "a", encoding="utf-8") as log_f:
         for index, value in enumerate(unified_dict["content"]):
             info = unified_dict["task"][index] + "|" + unified_dict["objective"][index]
             start = split
@@ -576,7 +570,7 @@ def save_unified_jsonl(output_path: str, unified_dict: dict):
             log_f.write(f"{info}, Row: {span_log}\n")
             split = end
             content_list.append(value)
-    with open(f"{output_path}/validation.jsonl", "w") as outfile:
+    with open(f"{output_path}/validation_{mode}.jsonl", "w") as outfile:
         for content in content_list:
             for ele in content:
                 outfile.write(json.dumps(ele) + "\n")
@@ -592,12 +586,14 @@ def get_arguments():
                         help="Please specify the parsing objective.")  # choices = ['zero', 'heur_{idx}', 'linear_{idx}', oneshot]
     parser.add_argument("--split", default=["validation"], nargs="+",
                         help="Please specify which split you want to generate/parse.")  # choices = ['train', 'validation', 'test']
-    parser.add_argument("--linear_func", default="html", type=str,
+    parser.add_argument("--linearize_list", default=["html"], nargs="+",
                         help="Please specify which linearization you want to use.")
-    parser.add_argument("--use_structure_mark", default=True, action="store_true",
-                        help="Please specify whether to use_structure_mark.")
-    parser.add_argument("--add_grammar", default=True, action="store_true",
-                        help="Please specify whether to add_grammar.")
+    parser.add_argument("--use_partition_mark", default=True, action="store_true",
+                        help="Please specify whether to use_partition_mark.")
+    parser.add_argument("--use_format_explanation", default=True, action="store_true",
+                        help="Please specify whether to use_format_explanation.")
+    parser.add_argument("--change_order", default=True, action="store_true", help="Please specify whether the change the order of the table")
+    parser.add_argument("--use_role_prompting", default=True, action="store_true", help="Please specify whether to assign a role to GPT3")
     parser.add_argument("--heuristic", default=None, type=str,
                         help="Please specify which heuristic to use: [heur_8, heur_9]")
     parser.add_argument("--unified", default=False, action="store_true",
@@ -615,29 +611,55 @@ def task_specific_babel_convertor():
     if args.unified:
         unified_dict = {"content": [], "task": [], "objective": []}
     babel_convertor = BabelConvertor()
+
     for task in args.task:
         for obj in args.objective:
-            for split in args.split:
-                structured_type = get_keys(DATASETS, task)[0]
-                # set up the instruction for the prompt design (prompt engineering-->role prompting)
-                args.instruction = f"You are a brilliant {structured_type} executor with the capbilities [retrieve], [input parsing], [metadata inference], [pattern understanding] who can understand the structural information of the {structured_type}.\n"
-                babel_convertor.set_split_obj(task, structured_type, split, obj, args.instruction,
-                                              args.linear_func, args.use_structure_mark, args.add_grammar,
-                                              args.heuristic
-                                              )
-                # save raw jsonl file
-                save_raw_jsonl(task, split)
-                # retrieve the content sample list
-                content_list = babel_convertor.retrieve_sample_list()
-                if args.unified:
-                    unified_dict["content"].append(content_list)
-                    unified_dict["task"].append(task)
-                    unified_dict["objective"].append(obj)
-                logging.info(f"Task-{task} Objective-{obj} Split-{split} has been saved..")
-                # save parsed jsonl
-                save_jsonl(obj, task, split, content_list)
+            for linear_func in args.linearize_list:
+                for split in args.split:
+                    structured_type = get_keys(DATASETS, task)[0]
+                    # set up the instruction for the prompt design (prompt engineering-->role prompting)
+                    if args.use_role_prompting:
+                        args.instruction = f"You are a brilliant {structured_type} executor with the capbilities [retrieve], [input parsing], [metadata inference], [pattern understanding] who can understand the structural information of the {structured_type}.\n"
+                    else:
+                        args.instruction = ""
+                    babel_convertor.set_split_obj(task, structured_type, split, obj, args.instruction,
+                                                  linear_func, args.use_partition_mark, args.use_format_explanation,
+                                                  args.heuristic
+                                                  )
+                    # set the validation mode
+                    if args.use_partition_mark and args.use_role_prompting and args.use_format_explanation:
+                        mode = f"{linear_func}_0_1_3"
+                    elif args.use_partition_mark and args.use_format_explanation:
+                        mode = f"{linear_func}_0_1"
+                    elif args.use_partition_mark and args.use_role_prompting:
+                        mode= f"{linear_func}_0_3"
+                    elif args.use_format_explanation and args.use_role_prompting:
+                        mode = f"{linear_func}_1_3"
+                    elif args.use_role_prompting:
+                        mode = f"{linear_func}_3"
+                    elif args.use_partition_mark:
+                        mode = f"{linear_func}_0"
+                    elif args.use_format_explanation:
+                        mode = f"{linear_func}_1"
+                    elif args.change_order:
+                        mode = f"{linear_func}_2"
+                    else:
+                        mode = f"{linear_func}"
+
+                    # # save raw jsonl file
+                    # save_raw_jsonl(task, split, mode)
+
+                    # retrieve the content sample list
+                    content_list = babel_convertor.retrieve_sample_list()
+                    if args.unified:
+                        unified_dict["content"].append(content_list)
+                        unified_dict["task"].append(task)
+                        unified_dict["objective"].append(obj)
+                    logging.info(f"Task-{task} Objective-{obj} Split-{split} has been saved..")
+                    # save parsed jsonl
+                    save_jsonl(obj, task, split, content_list, mode)
     if args.unified:
-        save_unified_jsonl(args.unified_file_output, unified_dict)
+        save_unified_jsonl(args.unified_file_output, unified_dict, mode)
         logging.info(f"unified version has been saved")
 
 
