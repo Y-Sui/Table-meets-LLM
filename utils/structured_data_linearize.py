@@ -3,6 +3,18 @@ import pandas as pd
 from tabulate import tabulate
 
 
+def to_xml(df):
+    def row_to_xml(row):
+        xml = ['<item>']
+        for i, col_name in enumerate(row.index):
+            xml.append('  <field name="{0}">{1}</field>'.format(col_name, row.iloc[i]))
+        xml.append('</item>')
+        return '\n'.join(xml)
+
+    res = '\n'.join(df.apply(row_to_xml, axis=1))
+    return res
+
+
 class StructuredDataLinearize:
     """Expects the structured data with the following format:
 
@@ -19,6 +31,7 @@ class StructuredDataLinearize:
 
     def __init__(self):
         self.end_prompt = "The answer is "
+        pd.DataFrame.to_xml = to_xml
 
     def retrieve_linear_function(self, func, use_structure_mark, add_grammar, change_order, structured_data_dict):
         self.structured_data_dict = structured_data_dict
@@ -48,12 +61,11 @@ class StructuredDataLinearize:
                 self.structured_data_dict["table"]["caption"]) + "\n"
         if self.change_order:
             structured_data = pd.DataFrame(np.array(self.structured_data_dict['table']['rows']).T,
-                                           index=self.structured_data_dict['table']['header'])
+                                           columns=self.structured_data_dict['table']['header'])
             structured_data_markdown = tabulate(structured_data, tablefmt='pipe', showindex=True)
         else:
-            structured_data = pd.DataFrame(self.structured_data_dict['table']['rows'])
-            structured_data_markdown = tabulate(structured_data, headers=self.structured_data_dict['table']['header'],
-                                                tablefmt='pipe', showindex=True)
+            structured_data = pd.DataFrame(self.structured_data_dict['table']['rows'], columns=self.structured_data_dict['table']['header'])
+            structured_data_markdown = tabulate(structured_data, tablefmt='pipe', showindex=True)
 
         if self.add_grammar:
             grammar = "<Markdown grammar>\n To add a table, use three or more hyphens (---) to create each column’s header, and use pipes (|) to separate each column, every cell is separated by pipe \n"
@@ -100,10 +112,10 @@ class StructuredDataLinearize:
         for i in range(len(header)):
             header[i] = "_".join(header[i].split())
         if self.change_order:
-            structured_data = pd.DataFrame(np.array(self.structured_data_dict['table']['rows']).T)
+            structured_data = pd.DataFrame(np.array(self.structured_data_dict['table']['rows']).T, columns=self.structured_data_dict['table']['header'])
             structured_data_xml = structured_data.to_xml()
         else:
-            structured_data = pd.DataFrame(self.structured_data_dict['table']['rows'])
+            structured_data = pd.DataFrame(self.structured_data_dict['table']['rows'], columns=self.structured_data_dict['table']['header'])
             structured_data_xml = structured_data.to_xml()
 
         if self.add_grammar:
@@ -139,7 +151,7 @@ class StructuredDataLinearize:
             header = False if len(self.structured_data_dict['table']['header']) == 1 and \
                               self.structured_data_dict['table']['header'][0] == "" else True
             structured_data = pd.DataFrame(np.array(self.structured_data_dict['table']['rows']).T,
-                                           index=self.structured_data_dict['table']['header'])
+                                           columns=self.structured_data_dict['table']['header'])
             structured_data_html = structured_data.to_html(header=header)
         else:
             header = False if len(self.structured_data_dict['table']['header']) == 1 and \
@@ -173,7 +185,7 @@ class StructuredDataLinearize:
                 self.structured_data_dict["table"]["caption"]) + "\n"
         if self.change_order:
             structured_data = pd.DataFrame(np.array(self.structured_data_dict['table']['rows']).T,
-                                           index=self.structured_data_dict['table']['header'])
+                                           columns=self.structured_data_dict['table']['header'])
             structured_data_latex = structured_data.to_latex()
         else:
             structured_data = pd.DataFrame(self.structured_data_dict['table']['rows'],

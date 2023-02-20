@@ -55,28 +55,29 @@ class BabelConvertor:
         self.use_partition_mark = use_partition_mark
         self.use_format_explanation = use_format_explanation
         self.heuristic = heuristic
-        try:
-            self.dataset = load_dataset(f"./scripts/dataset_collection/{task}.py", ignore_verifications=True)
-        except:
-            if self.task.__contains__("multi"):
-                huggingface_hub = "multi_woz_22"
-            elif self.task == "sqa":
-                huggingface_hub = "msr_sqa"
-            elif self.task == "dart":
-                huggingface_hub = "dart"
-            elif self.task.__contains__("formlm"):
-                huggingface_hub = "./scripts/formlm_dataset_OOF/dev_selected_data0426.json"
-            else:
-                huggingface_hub = ""
-            # load formlm dataset from local
-            if self.task.__contains__("formlm"):
-                validation_data = load_json(huggingface_hub)["data"]
-                self.form_linearizer = FormLinearize()
-                self.dataset = []
-                for data in validation_data:
-                    self.dataset.append(data)
-            else:
-                self.dataset = load_dataset(huggingface_hub, ignore_verifications=True)
+        # try:
+        #     self.dataset = load_dataset(f"./scripts/dataset_collection/{task}.py", ignore_verifications=True)
+        # except:
+        #     if self.task.__contains__("multi"):
+        #         huggingface_hub = "multi_woz_22"
+        #     elif self.task == "sqa":
+        #         huggingface_hub = "msr_sqa"
+        #     elif self.task == "dart":
+        #         huggingface_hub = "dart"
+        #     elif self.task.__contains__("formlm"):
+        #         huggingface_hub = "./scripts/formlm_dataset_OOF/dev_selected_data0426.json"
+        #     else:
+        #         huggingface_hub = ""
+        #     # load formlm dataset from local
+        #     if self.task.__contains__("formlm"):
+        #         validation_data = load_json(huggingface_hub)["data"]
+        #         self.form_linearizer = FormLinearize()
+        #         self.dataset = []
+        #         for data in validation_data:
+        #             self.dataset.append(data)
+        #     else:
+        #         self.dataset = load_dataset(huggingface_hub, ignore_verifications=True)
+        self.dataset = load_dataset(f"./scripts/dataset_collection/{task}.py", ignore_verifications=True)
         self.flag = 0  # no heuristics generation (zero-shot)
         self.request = get_requests(self.task)
         self.end_prompt = "The answer is \n"
@@ -90,54 +91,6 @@ class BabelConvertor:
                 "totto": self.retrieve_totto, "tabfact": self.retrieve_tabfact,
                 "sqa": self.retrieve_sqa}
         return dict[self.task]()
-
-    # def retrieve_formlm(self):
-    #     linearized_form = [] # linearized_form
-    #     for example in self.dataset:
-    #          linearized_form.append(self.form_linearizer.linearize_form(example))
-
-    def retrieve_formlm_opt_recommend(self):
-        """
-        formlm subtasks --> options recommendation
-        """
-        for example in self.dataset:
-            inputs, targets = self.form_linearizer.linearize_form_for_option_recommend(example)
-            for i in range(len(inputs)):
-                content = {"prompt": self.request + inputs[i] + "\n" + self.end_prompt,
-                           "completion": targets[i]}
-                if self.fit_heuristics_constraints("".join(content.values())) is False:
-                    continue
-                self.prompt_input.append(content)
-        return self.prompt_input
-
-    def retrieve_formlm_qa_recommend(self):
-        """
-        formlm subtask --> question recommendation
-        """
-        for example in self.dataset:
-            inputs, targets = self.form_linearizer.linearize_form_for_question_recommend(example, with_context=True)
-            for i in range(len(inputs)):
-                content = {"prompt": self.request + inputs[i] + "\n" + self.end_prompt,
-                           "completion": targets[i]}
-                if self.fit_heuristics_constraints("".join(content.values())) is False:
-                    continue
-                self.prompt_input.append(content)
-        return self.prompt_input
-
-    def retrieve_formlm_block_type_classification(self):
-        """
-        formlm subtask --> block type classification
-        """
-        for example in self.dataset:
-            inputs, targets = self.form_linearizer.linearize_form_for_block_type_classification(example,
-                                                                                                with_context=True)
-            for i in range(len(inputs)):
-                content = {"prompt": self.request + inputs[i] + "\n" + self.end_prompt,
-                           "completion": targets[i]}
-                if self.fit_heuristics_constraints("".join(content.values())) is False:
-                    continue
-                self.prompt_input.append(content)
-        return self.prompt_input
 
     def retrieve_feverous(self):
         def to_linearized_data(_example):
@@ -208,7 +161,6 @@ class BabelConvertor:
             self.prompt_input.append(content)
         return self.prompt_input
 
-
     def retrieve_hybridqa(self):
         def to_linearized_data(_example):
             data = {"title": "",
@@ -227,7 +179,7 @@ class BabelConvertor:
         oneshot_pool = []
 
         if 'oneshot' in self.objective:
-            while len(oneshot_pool) < 256:  # this is a bit slow
+            while len(oneshot_pool) < 512:  # this is a bit slow
                 oneshot_example = self.get_one_shot_example()
                 if oneshot_example["table"] is None:
                     continue
@@ -437,10 +389,14 @@ class BabelConvertor:
         if 'oneshot' in self.objective:
             while len(oneshot_pool) < 512:
                 oneshot_example = self.get_one_shot_example()
-                try:
-                    oneshot_prompt = to_linearized_data(oneshot_example)
-                except:
-                    continue
+
+                oneshot_prompt = to_linearized_data(oneshot_example)
+
+                # try:
+                #     oneshot_prompt = to_linearized_data(oneshot_example)
+                # except:
+                #     continue
+
                 oneshot_prompt = ("<example>\n" + oneshot_prompt +
                                   "\nThe natural language description for each highlighted part of the table:\n"
                                   + "\n".join(oneshot_example["final_sentences"]) + "\n</example>")
@@ -512,6 +468,7 @@ class BabelConvertor:
             content["example"] = oneshot_prompt
             self.prompt_input.append(content)
         return self.prompt_input
+
 
 def get_keys(dict, value):
     return [k for k, v in dict.items() if value in v]
@@ -592,8 +549,10 @@ def get_arguments():
                         help="Please specify whether to use_partition_mark.")
     parser.add_argument("--use_format_explanation", default=True, action="store_true",
                         help="Please specify whether to use_format_explanation.")
-    parser.add_argument("--change_order", default=True, action="store_true", help="Please specify whether the change the order of the table")
-    parser.add_argument("--use_role_prompting", default=True, action="store_true", help="Please specify whether to assign a role to GPT3")
+    parser.add_argument("--change_order", default=True, action="store_true",
+                        help="Please specify whether the change the order of the table")
+    parser.add_argument("--use_role_prompting", default=True, action="store_true",
+                        help="Please specify whether to assign a role to GPT3")
     parser.add_argument("--heuristic", default=None, type=str,
                         help="Please specify which heuristic to use: [heur_8, heur_9]")
     parser.add_argument("--unified", default=False, action="store_true",
@@ -634,7 +593,7 @@ def task_specific_babel_convertor():
             elif args.use_partition_mark and args.use_format_explanation:
                 mode = f"{linear_func}_0_1"
             elif args.use_partition_mark and args.use_role_prompting:
-                mode= f"{linear_func}_0_3"
+                mode = f"{linear_func}_0_3"
             elif args.use_format_explanation and args.use_role_prompting:
                 mode = f"{linear_func}_1_3"
             elif args.use_role_prompting:
@@ -647,10 +606,8 @@ def task_specific_babel_convertor():
                 mode = f"{linear_func}_2"
             else:
                 mode = f"{linear_func}"
-
             # # save raw jsonl file
             # save_raw_jsonl(task, split, mode)
-
             # retrieve the content sample list
             content_list = babel_convertor.retrieve_sample_list()
             if args.unified:
