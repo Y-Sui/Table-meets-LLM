@@ -81,21 +81,24 @@ class HybridQA(datasets.GeneratorBasedBuilder):
             for idx, example in enumerate(data):
                 answer_node = example["answer-node"]
                 table_id = example["table_id"]
-                table = json.load(open(os.path.join(table_tok_path, "{}.json".format(table_id))))
-                passages = json.load(open(os.path.join(passage_tok_path, "{}.json".format(table_id))))
-                answer = example["answer-text"]
-                # how to construct context?
-                # keep all cells and appending the sentences that contains answer span into the cell
-                header, data, passage_context_str = self.construct_expanded_table(table, passages, answer, answer_node)
-                yield idx, {
-                    "id": example["question_id"],
-                    "question": example["question"],
-                    "table_id": example["table_id"],
-                    "table": {"header": header, "rows": data},
-                    "passage": passage_context_str,
-                    "context": table["title"] + " | " + table["section_title"] + " | " + table["section_text"] + " | " + table["intro"],
-                    "answer_text": example["answer-text"],
-                }
+                try:
+                    table = json.load(open(os.path.join(table_tok_path, "{}.json".format(table_id))))
+                    passages = json.load(open(os.path.join(passage_tok_path, "{}.json".format(table_id))))
+                    answer = example["answer-text"]
+                    # how to construct context?
+                    # keep all cells and appending the sentences that contains answer span into the cell
+                    header, data, passage_context_str = self.construct_expanded_table(table, passages, answer, answer_node)
+                    yield idx, {
+                        "id": example["question_id"],
+                        "question": example["question"],
+                        "table_id": example["table_id"],
+                        "table": {"header": header, "rows": data},
+                        "passage": passage_context_str,
+                        "context": table["title"] + " | " + table["section_title"] + " | " + table["section_text"] + " | " + table["intro"],
+                        "answer_text": example["answer-text"],
+                    }
+                except:
+                    continue
 
     def construct_expanded_table(self, table, passages, answer, answer_nodes):
         def process_link(link):
@@ -123,3 +126,4 @@ class HybridQA(datasets.GeneratorBasedBuilder):
         for key in selected_passage:
             passage_context_str += "{}: {} | ".format(key, selected_passage[key])
         return header, data, passage_context_str
+

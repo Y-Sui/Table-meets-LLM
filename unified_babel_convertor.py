@@ -77,7 +77,7 @@ class BabelConvertor:
         #             self.dataset.append(data)
         #     else:
         #         self.dataset = load_dataset(huggingface_hub, ignore_verifications=True)
-        self.dataset = load_dataset(f"./scripts/dataset_collection/{task}.py", ignore_verifications=True)
+        self.dataset = load_dataset(f"./scripts/dataset_collection/{task}.py")
         self.flag = 0  # no heuristics generation (zero-shot)
         self.request = get_requests(self.task)
         self.end_prompt = "The answer is \n"
@@ -390,12 +390,12 @@ class BabelConvertor:
             while len(oneshot_pool) < 512:
                 oneshot_example = self.get_one_shot_example()
 
-                oneshot_prompt = to_linearized_data(oneshot_example)
+                # oneshot_prompt = to_linearized_data(oneshot_example)
 
-                # try:
-                #     oneshot_prompt = to_linearized_data(oneshot_example)
-                # except:
-                #     continue
+                try:
+                    oneshot_prompt = to_linearized_data(oneshot_example)
+                except:
+                    continue
 
                 oneshot_prompt = ("<example>\n" + oneshot_prompt +
                                   "\nThe natural language description for each highlighted part of the table:\n"
@@ -520,7 +520,7 @@ def save_unified_jsonl(output_path: str, unified_dict: dict, mode: str):
     split = 0
     with open(f"{output_path}/validation_{mode}.txt", "a", encoding="utf-8") as log_f:
         for index, value in enumerate(unified_dict["content"]):
-            info = unified_dict["task"][index] + "|" + unified_dict["objective"][index]
+            info = unified_dict["task"][index] + "|" + unified_dict["choices"][index] + "|" + unified_dict["objective"][index]
             start = split
             end = split + len(value)
             span_log = [start, end]
@@ -568,7 +568,7 @@ def task_specific_babel_convertor():
     args = get_arguments()
     logging.info(args)
     if args.unified:
-        unified_dict = {"content": [], "task": [], "objective": []}
+        unified_dict = {"content": [], "task": [], "objective": [], "choices": []}
     babel_convertor = BabelConvertor()
 
     split = args.split[0]
@@ -614,6 +614,7 @@ def task_specific_babel_convertor():
                 unified_dict["content"].append(content_list)
                 unified_dict["task"].append(task)
                 unified_dict["objective"].append(obj)
+                unified_dict["choices"].append(mode)
             logging.info(f"Task-{task} Objective-{obj} Split-{split} Linear-{linear_func} has been saved..")
             # save parsed jsonl
             save_jsonl(obj, task, split, content_list, mode)
