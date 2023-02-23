@@ -209,14 +209,14 @@ class StructuredDataLinearize:
                 self.structured_data_dict["context"]) + "\n" + "".join(
                 self.structured_data_dict["table"]["caption"]) + "\n"
         if self.change_order:
-            header = self.structured_data_dict["header"]
+            header = self.structured_data_dict["table"]["header"]
             reversed_table = np.array(self.structured_data_dict['table']['rows']).T
             cells = []
             for i in range(len(reversed_table)):
                 cells.append(header[i] + "|".join(reversed_table[i]) + "\n")
             structured_data_nl_sep = "".join(cells)
         else:
-            header = "|".join(self.structured_data_dict["header"]) + "\n"
+            header = "|".join(self.structured_data_dict["table"]["header"]) + "\n"
             cells = []
             for i in range(len(self.structured_data_dict["table"]["rows"])):
                 cells.append("|".join(self.structured_data_dict["table"]["rows"][i]) + "\n")
