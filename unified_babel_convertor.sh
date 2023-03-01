@@ -34,3 +34,12 @@ python unified_babel_convertor.py --task totto tabfact hybridqa sqa feverous --o
 python unified_babel_convertor.py --task totto tabfact hybridqa sqa feverous --objective oneshot --heuristic heur_10 --split validation --unified --unified_file_output ./exps/downstream_tasks_20230219_self_augmented_p1_log/heur_10_0_1 --linearize_list html markdown json nl_sep xml --use_partition_mark --use_format_explanation
 python unified_babel_convertor.py --task totto tabfact hybridqa sqa feverous --objective oneshot --heuristic heur_10 --split validation --unified --unified_file_output ./exps/downstream_tasks_20230219_self_augmented_p1_log/heur_10_0_3 --linearize_list html markdown json nl_sep xml --use_role_prompting --use_partition_mark
 python unified_babel_convertor.py --task totto tabfact hybridqa sqa feverous --objective oneshot --heuristic heur_10 --split validation --unified --unified_file_output ./exps/downstream_tasks_20230219_self_augmented_p1_log/heur_10_1_3 --linearize_list html markdown json nl_sep xml --use_role_prompting --use_format_explanation
+
+# 2023-02-28 self-augmentation for p2
+python unified_babel_convertor.py --task totto tabfact hybridqa sqa feverous --objective zeroshot --heuristic heur_8 --split validation --unified --unified_file_output  ./exps/downstream_tasks_20230228_self_augmented_zeroshot_p1_log/heur_8_0_1_3  --linearize_list html markdown json nl_sep xml --use_partition_mark --use_role_prompting --use_format_explanation
+python unified_babel_convertor.py --task totto tabfact hybridqa sqa feverous --objective zeroshot --heuristic heur_9 --split validation --unified --unified_file_output  ./exps/downstream_tasks_20230228_self_augmented_zeroshot_p1_log/heur_9_0_1_3  --linearize_list html markdown json nl_sep xml --use_partition_mark --use_role_prompting --use_format_explanation
+python unified_babel_convertor.py --task totto tabfact hybridqa sqa feverous --objective zeroshot --heuristic heur_10 --split validation --unified --unified_file_output  ./exps/downstream_tasks_20230228_self_augmented_zeroshot_p1_log/heur_10_0_1_3  --linearize_list html markdown json nl_sep xml --use_partition_mark --use_role_prompting --use_format_explanation
+
+# 2023-02-28 zero-shot
+python unified_babel_convertor.py --task totto tabfact hybridqa sqa feverous --objective zeroshot --split validation --unified --unified_file_output  ./exps/downstream_tasks_20230228_zeroshot_log/  --linearize_list html markdown json nl_sep xml --use_partition_mark --use_role_prompting --use_format_explanation
+
