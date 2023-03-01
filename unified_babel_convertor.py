@@ -545,13 +545,13 @@ def get_arguments():
                         help="Please specify which split you want to generate/parse.")  # choices = ['train', 'validation', 'test']
     parser.add_argument("--linearize_list", default=["html"], nargs="+",
                         help="Please specify which linearization you want to use.")
-    parser.add_argument("--use_partition_mark", default=True, action="store_true",
+    parser.add_argument("--use_partition_mark", default=False, action="store_true",
                         help="Please specify whether to use_partition_mark.")
-    parser.add_argument("--use_format_explanation", default=True, action="store_true",
+    parser.add_argument("--use_format_explanation", default=False, action="store_true",
                         help="Please specify whether to use_format_explanation.")
-    parser.add_argument("--change_order", default=True, action="store_true",
+    parser.add_argument("--change_order", default=False, action="store_true",
                         help="Please specify whether the change the order of the table")
-    parser.add_argument("--use_role_prompting", default=True, action="store_true",
+    parser.add_argument("--use_role_prompting", default=False, action="store_true",
                         help="Please specify whether to assign a role to GPT3")
     parser.add_argument("--heuristic", default=None, type=str,
                         help="Please specify which heuristic to use: [heur_8, heur_9]")
