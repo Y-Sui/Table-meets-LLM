@@ -11,10 +11,8 @@ from transformers import GPT2TokenizerFast
 
 from unified_babel_convertor import BabelConvertor
 
-sys.path.insert(0, "utils")
-
 from utils import FormLinearize, StructuredDataLinearize
-from config import DATASETS
+from .config import DATASETS
 
 # from tprompt.dte.embedding import DTEEmbedding
 # from tprompt.dte.generator import generate_embeddings

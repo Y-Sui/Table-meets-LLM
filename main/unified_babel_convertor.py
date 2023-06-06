@@ -11,11 +11,14 @@ sys.path.insert(0, "utils")
 
 from datasets import load_dataset
 from utils import get_unique_items, load_json, FormLinearize, StructuredDataLinearize
-from config import DATASETS, get_heuristics, get_requests, get_end_prompt
+from main.config import DATASETS, get_heuristics, get_requests, get_end_prompt
 from transformers import GPT2TokenizerFast
 
-logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s', datefmt='%m/%d/%Y %H:%M:%S',
-                    level=logging.INFO)
+logging.basicConfig(
+    format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
+    datefmt='%m/%d/%Y %H:%M:%S',
+    level=logging.INFO,
+)
 
 
 class BabelConvertor:
@@ -43,8 +46,18 @@ class BabelConvertor:
         idx = np.random.randint(0, len(training_set))
         return training_set[idx]
 
-    def set_split_obj(self, task: str, structured_type: str, split: str, objective: str, instruction: str,
-                      linearize_func: str, use_partition_mark: bool, use_format_explanation: bool, heuristic: str):
+    def set_split_obj(
+        self,
+        task: str,
+        structured_type: str,
+        split: str,
+        objective: str,
+        instruction: str,
+        linearize_func: str,
+        use_partition_mark: bool,
+        use_format_explanation: bool,
+        heuristic: str,
+    ):
         self.prompt_input = []  # refresh when init set_split_obj
         self.split = split
         self.objective = objective
@@ -87,24 +100,33 @@ class BabelConvertor:
             self.flag = 1
 
     def retrieve_sample_list(self):
-        dict = {"feverous": self.retrieve_feverous, "hybridqa": self.retrieve_hybridqa,
-                "totto": self.retrieve_totto, "tabfact": self.retrieve_tabfact,
-                "sqa": self.retrieve_sqa}
+        dict = {
+            "feverous": self.retrieve_feverous,
+            "hybridqa": self.retrieve_hybridqa,
+            "totto": self.retrieve_totto,
+            "tabfact": self.retrieve_tabfact,
+            "sqa": self.retrieve_sqa,
+        }
         return dict[self.task]()
 
     def retrieve_feverous(self):
         def to_linearized_data(_example):
-            data = {"title": "",
-                    "context": _example["context"],
-                    "table": {"header": _example['table']['header'][0],
-                              "rows": _example['table']['rows'][0],
-                              "caption": ""
-                              }
-                    }
-            ret = self.linearizer.retrieve_linear_function(self.linearize_func,
-                                                           self.use_partition_mark,
-                                                           self.use_format_explanation,
-                                                           False, data)
+            data = {
+                "title": "",
+                "context": _example["context"],
+                "table": {
+                    "header": _example['table']['header'][0],
+                    "rows": _example['table']['rows'][0],
+                    "caption": "",
+                },
+            }
+            ret = self.linearizer.retrieve_linear_function(
+                self.linearize_func,
+                self.use_partition_mark,
+                self.use_format_explanation,
+                False,
+                data,
+            )
             return ret
 
         oneshot_pool = []
@@ -117,16 +139,28 @@ class BabelConvertor:
                 except:
                     continue
                 label = "0" if oneshot_example["label"] == "REFUTES" else "1"
-                oneshot_prompt = ("<example>\n" + oneshot_prompt + "<statement>\n" + oneshot_example[
-                    "statement"] + "\n" + self.end_prompt + label + "\n</example>")
-                if self.fit_heuristics_constraints(oneshot_prompt, max_token_length=1024):
+                oneshot_prompt = (
+                    "<example>\n"
+                    + oneshot_prompt
+                    + "<statement>\n"
+                    + oneshot_example["statement"]
+                    + "\n"
+                    + self.end_prompt
+                    + label
+                    + "\n</example>"
+                )
+                if self.fit_heuristics_constraints(
+                    oneshot_prompt, max_token_length=1024
+                ):
                     oneshot_pool.append(oneshot_prompt)
 
                     if len(oneshot_pool) % 32 == 0:
                         print('-', end="", flush=True)
 
         if self.heuristic != None:
-            self.request = get_heuristics(self.data_type, context_type="statement")[self.heuristic]
+            self.request = get_heuristics(self.data_type, context_type="statement")[
+                self.heuristic
+            ]
             self.end_prompt = get_end_prompt()[self.heuristic]
 
         for example in self.dataset[self.split]:
@@ -150,10 +184,22 @@ class BabelConvertor:
                 table_info = to_linearized_data(example)
             except:
                 continue
-            content[
-                "prompt"] = self.instruct + table_info + "<request>\n" + self.request + "<statement>\n" + statement + self.end_prompt
+            content["prompt"] = (
+                self.instruct
+                + table_info
+                + "<request>\n"
+                + self.request
+                + "<statement>\n"
+                + statement
+                + self.end_prompt
+            )
             content["completion"] = "0" if label == "REFUTES" else "1"
-            if self.fit_heuristics_constraints("".join(content.values()), 4000 - 1024 - 500) is False:
+            if (
+                self.fit_heuristics_constraints(
+                    "".join(content.values()), 4000 - 1024 - 500
+                )
+                is False
+            ):
                 continue
 
             # content["prompt"] = oneshot_prompt + content["prompt"]
@@ -163,17 +209,22 @@ class BabelConvertor:
 
     def retrieve_hybridqa(self):
         def to_linearized_data(_example):
-            data = {"title": "",
-                    "context": [_example["context"], _example["passage"]],
-                    "table": {"header": _example['table']['header'],
-                              "rows": _example['table']['rows'],
-                              "caption": ""
-                              }
-                    }
-            ret = self.linearizer.retrieve_linear_function(self.linearize_func,
-                                                           self.use_partition_mark,
-                                                           self.use_format_explanation,
-                                                           False, data)
+            data = {
+                "title": "",
+                "context": [_example["context"], _example["passage"]],
+                "table": {
+                    "header": _example['table']['header'],
+                    "rows": _example['table']['rows'],
+                    "caption": "",
+                },
+            }
+            ret = self.linearizer.retrieve_linear_function(
+                self.linearize_func,
+                self.use_partition_mark,
+                self.use_format_explanation,
+                False,
+                data,
+            )
             return ret
 
         oneshot_pool = []
@@ -185,16 +236,28 @@ class BabelConvertor:
                     continue
 
                 oneshot_prompt = to_linearized_data(oneshot_example)
-                oneshot_prompt = ("<example>\n" + oneshot_prompt + "<question>\n" + oneshot_example[
-                    "question"] + "\n" + self.end_prompt + oneshot_example["answer_text"] + "\n</example>")
-                if self.fit_heuristics_constraints(oneshot_prompt, max_token_length=1024):
+                oneshot_prompt = (
+                    "<example>\n"
+                    + oneshot_prompt
+                    + "<question>\n"
+                    + oneshot_example["question"]
+                    + "\n"
+                    + self.end_prompt
+                    + oneshot_example["answer_text"]
+                    + "\n</example>"
+                )
+                if self.fit_heuristics_constraints(
+                    oneshot_prompt, max_token_length=1024
+                ):
                     oneshot_pool.append(oneshot_prompt)
 
                     if len(oneshot_pool) % 32 == 0:
                         print('-', end="", flush=True)
 
         if self.heuristic != None:
-            self.request = get_heuristics(self.data_type, context_type="question")[self.heuristic]
+            self.request = get_heuristics(self.data_type, context_type="question")[
+                self.heuristic
+            ]
             self.end_prompt = get_end_prompt()[self.heuristic]
 
         for example in tqdm(self.dataset[self.split], leave=False):
@@ -210,12 +273,24 @@ class BabelConvertor:
 
             table_info = to_linearized_data(example)
             label = example["answer_text"]
-            content[
-                "prompt"] = self.instruct + table_info + "<request>\n" + self.request + "<question>\n" + example[
-                "question"] + "\n" + self.end_prompt
+            content["prompt"] = (
+                self.instruct
+                + table_info
+                + "<request>\n"
+                + self.request
+                + "<question>\n"
+                + example["question"]
+                + "\n"
+                + self.end_prompt
+            )
 
             content["completion"] = label
-            if self.fit_heuristics_constraints("".join(content.values()), 4000 - 1024 - 500) is False:
+            if (
+                self.fit_heuristics_constraints(
+                    "".join(content.values()), 4000 - 1024 - 500
+                )
+                is False
+            ):
                 continue
 
             # content["prompt"] = oneshot_prompt + content["prompt"]
@@ -225,17 +300,22 @@ class BabelConvertor:
 
     def retrieve_sqa(self):
         def to_linearized_data(_example):
-            data = {"title": "",
-                    "context": "",
-                    "table": {"header": _example['table_header'],
-                              "rows": _example['table_data'],
-                              "caption": ""
-                              }
-                    }
-            ret = self.linearizer.retrieve_linear_function(self.linearize_func,
-                                                           self.use_partition_mark,
-                                                           self.use_format_explanation,
-                                                           False, data)
+            data = {
+                "title": "",
+                "context": "",
+                "table": {
+                    "header": _example['table_header'],
+                    "rows": _example['table_data'],
+                    "caption": "",
+                },
+            }
+            ret = self.linearizer.retrieve_linear_function(
+                self.linearize_func,
+                self.use_partition_mark,
+                self.use_format_explanation,
+                False,
+                data,
+            )
             return ret
 
         oneshot_pool = []
@@ -245,16 +325,28 @@ class BabelConvertor:
                 oneshot_example = self.get_one_shot_example()
 
                 oneshot_prompt = to_linearized_data(oneshot_example)
-                oneshot_prompt = ("<example>\n" + oneshot_prompt + "<question>\n" + oneshot_example[
-                    "question"] + "\n" + self.end_prompt + "|".join(oneshot_example["answer_text"]) + "\n</example>")
-                if self.fit_heuristics_constraints(oneshot_prompt, max_token_length=1024):
+                oneshot_prompt = (
+                    "<example>\n"
+                    + oneshot_prompt
+                    + "<question>\n"
+                    + oneshot_example["question"]
+                    + "\n"
+                    + self.end_prompt
+                    + "|".join(oneshot_example["answer_text"])
+                    + "\n</example>"
+                )
+                if self.fit_heuristics_constraints(
+                    oneshot_prompt, max_token_length=1024
+                ):
                     oneshot_pool.append(oneshot_prompt)
 
                     # if len(oneshot_pool) % 32 == 0:
                     #     print('-', end="", flush=True)
 
         if self.heuristic != None:
-            self.request = get_heuristics(self.data_type, context_type="question")[self.heuristic]
+            self.request = get_heuristics(self.data_type, context_type="question")[
+                self.heuristic
+            ]
             self.end_prompt = get_end_prompt()[self.heuristic]
 
         for example in tqdm(self.dataset[self.split], leave=False):
@@ -269,10 +361,23 @@ class BabelConvertor:
             answer = "|".join(example["answer_text"])
 
             table_info = to_linearized_data(example)
-            content[
-                "prompt"] = self.instruct + "\n" + table_info + "<request>\n" + self.request + "<question>\n" + question + self.end_prompt
+            content["prompt"] = (
+                self.instruct
+                + "\n"
+                + table_info
+                + "<request>\n"
+                + self.request
+                + "<question>\n"
+                + question
+                + self.end_prompt
+            )
             content["completion"] = answer
-            if self.fit_heuristics_constraints("".join(content.values()), 4000 - 1024 - 500) is False:
+            if (
+                self.fit_heuristics_constraints(
+                    "".join(content.values()), 4000 - 1024 - 500
+                )
+                is False
+            ):
                 continue
 
             # content["prompt"] = oneshot_prompt + content["prompt"]
@@ -282,17 +387,22 @@ class BabelConvertor:
 
     def retrieve_tabfact(self):
         def to_linearized_data(_example):
-            data = {"title": "",
-                    "context": "",
-                    "table": {"header": _example['table']['header'],
-                              "rows": _example['table']['rows'],
-                              "caption": _example['table']['caption']
-                              }
-                    }
-            ret = self.linearizer.retrieve_linear_function(self.linearize_func,
-                                                           self.use_partition_mark,
-                                                           self.use_format_explanation,
-                                                           False, data)
+            data = {
+                "title": "",
+                "context": "",
+                "table": {
+                    "header": _example['table']['header'],
+                    "rows": _example['table']['rows'],
+                    "caption": _example['table']['caption'],
+                },
+            }
+            ret = self.linearizer.retrieve_linear_function(
+                self.linearize_func,
+                self.use_partition_mark,
+                self.use_format_explanation,
+                False,
+                data,
+            )
             return ret
 
         oneshot_pool = []
@@ -302,9 +412,19 @@ class BabelConvertor:
                 if oneshot_example['table'] is None:
                     continue
                 oneshot_prompt = to_linearized_data(oneshot_example)
-                oneshot_prompt = ("<example>\n" + oneshot_prompt + "<statement>\n" + oneshot_example[
-                    "statement"] + "\n" + self.end_prompt + str(oneshot_example['label']) + "\n</example>")
-                if self.fit_heuristics_constraints(oneshot_prompt, max_token_length=1024):
+                oneshot_prompt = (
+                    "<example>\n"
+                    + oneshot_prompt
+                    + "<statement>\n"
+                    + oneshot_example["statement"]
+                    + "\n"
+                    + self.end_prompt
+                    + str(oneshot_example['label'])
+                    + "\n</example>"
+                )
+                if self.fit_heuristics_constraints(
+                    oneshot_prompt, max_token_length=1024
+                ):
                     oneshot_pool.append(oneshot_prompt)
 
                     if len(oneshot_pool) % 32 == 0:
@@ -312,7 +432,9 @@ class BabelConvertor:
 
         # must after oneshot sampling
         if self.heuristic != None:
-            self.request = get_heuristics(self.data_type, context_type="statement")[self.heuristic]
+            self.request = get_heuristics(self.data_type, context_type="statement")[
+                self.heuristic
+            ]
             self.end_prompt = get_end_prompt()[self.heuristic]
 
         for example in tqdm(self.dataset[self.split], leave=False):
@@ -329,11 +451,25 @@ class BabelConvertor:
 
             table_info = to_linearized_data(example)
             label = example["label"]
-            content[
-                "prompt"] = self.instruct + "\n" + table_info + "<request>\n" + self.request + "<statement>\n" + statement + "\n" + self.end_prompt
+            content["prompt"] = (
+                self.instruct
+                + "\n"
+                + table_info
+                + "<request>\n"
+                + self.request
+                + "<statement>\n"
+                + statement
+                + "\n"
+                + self.end_prompt
+            )
             content["completion"] = str(label)
 
-            if self.fit_heuristics_constraints("".join(content.values()), 4000 - 1024 - 500) is False:
+            if (
+                self.fit_heuristics_constraints(
+                    "".join(content.values()), 4000 - 1024 - 500
+                )
+                is False
+            ):
                 continue
 
             # content["prompt"] = oneshot_prompt + content["prompt"]
@@ -353,7 +489,10 @@ class BabelConvertor:
                 for c_idx in range(len(table[r_idx])):
                     # TODO: here a bug occurs that header and table_info don't have same number of columns
                     # Investigation: it seems some table are illegal
-                    row.extend([table[r_idx][c_idx]["value"]] * table[r_idx][c_idx]["column_span"])
+                    row.extend(
+                        [table[r_idx][c_idx]["value"]]
+                        * table[r_idx][c_idx]["column_span"]
+                    )
 
                 table_rows.append(row)
 
@@ -361,24 +500,41 @@ class BabelConvertor:
             try:
                 for h_idx in highlight_idx:
                     highlight_info.append(
-                        str(h_idx) + ": " + str(parsed_header[h_idx[1]]) + "|" + table[h_idx[0]][h_idx[1]][
-                            "value"] + "\n")
+                        str(h_idx)
+                        + ": "
+                        + str(parsed_header[h_idx[1]])
+                        + "|"
+                        + table[h_idx[0]][h_idx[1]]["value"]
+                        + "\n"
+                    )
             except:
                 for h_idx in highlight_idx:
-                    highlight_info.append(str(h_idx) + ": " + "-" + "|" + table[h_idx[0]][h_idx[1]]["value"] + "\n")
+                    highlight_info.append(
+                        str(h_idx)
+                        + ": "
+                        + "-"
+                        + "|"
+                        + table[h_idx[0]][h_idx[1]]["value"]
+                        + "\n"
+                    )
 
-            data = {"title": _example['table_page_title'],
-                    "context": "",
-                    "table": {"header": table_rows[0],
-                              "rows": table_rows[1:],
-                              "caption": _example['table_section_title']
-                              }
-                    }
+            data = {
+                "title": _example['table_page_title'],
+                "context": "",
+                "table": {
+                    "header": table_rows[0],
+                    "rows": table_rows[1:],
+                    "caption": _example['table_section_title'],
+                },
+            }
 
-            ret = self.linearizer.retrieve_linear_function(self.linearize_func,
-                                                           self.use_partition_mark,
-                                                           self.use_format_explanation,
-                                                           False, data)
+            ret = self.linearizer.retrieve_linear_function(
+                self.linearize_func,
+                self.use_partition_mark,
+                self.use_format_explanation,
+                False,
+                data,
+            )
 
             if len(highlight_info) > 0:
                 return ret + "<Highlighted>\n" + "".join(highlight_info)
@@ -397,17 +553,25 @@ class BabelConvertor:
                 except:
                     continue
 
-                oneshot_prompt = ("<example>\n" + oneshot_prompt +
-                                  "\nThe natural language description for each highlighted part of the table:\n"
-                                  + "\n".join(oneshot_example["final_sentences"]) + "\n</example>")
-                if self.fit_heuristics_constraints(oneshot_prompt, max_token_length=1024):
+                oneshot_prompt = (
+                    "<example>\n"
+                    + oneshot_prompt
+                    + "\nThe natural language description for each highlighted part of the table:\n"
+                    + "\n".join(oneshot_example["final_sentences"])
+                    + "\n</example>"
+                )
+                if self.fit_heuristics_constraints(
+                    oneshot_prompt, max_token_length=1024
+                ):
                     oneshot_pool.append(oneshot_prompt)
 
                     if len(oneshot_pool) % 32 == 0:
                         print('-', end="", flush=True)
 
         if self.heuristic != None:
-            self.request = get_heuristics(self.data_type, context_type="highlighted part")[self.heuristic]
+            self.request = get_heuristics(
+                self.data_type, context_type="highlighted part"
+            )[self.heuristic]
             self.end_prompt = get_end_prompt()[self.heuristic]
         else:
             self.end_prompt = ""
@@ -459,9 +623,20 @@ class BabelConvertor:
             except:
                 continue
 
-            content["prompt"] = self.instruct + table_info + "\n<request>\n" + self.request + self.end_prompt
+            content["prompt"] = (
+                self.instruct
+                + table_info
+                + "\n<request>\n"
+                + self.request
+                + self.end_prompt
+            )
             content["completion"] = "\n".join(final_questions)
-            if self.fit_heuristics_constraints("".join(content.values()), 4000 - 1024 - 500) is False:
+            if (
+                self.fit_heuristics_constraints(
+                    "".join(content.values()), 4000 - 1024 - 500
+                )
+                is False
+            ):
                 continue
 
             # content["prompt"] = oneshot_prompt + content["prompt"]
@@ -476,7 +651,9 @@ def get_keys(dict, value):
 
 def save_raw_jsonl(task: str, split_set: str, mode: str):
     try:
-        dataset = load_dataset(f"./scripts/dataset_collection/{task}.py", ignore_verifications=True)
+        dataset = load_dataset(
+            f"./scripts/dataset_collection/{task}.py", ignore_verifications=True
+        )
     except FileNotFoundError:
         if task.__contains__("multi"):
             huggingface_hub = "multi_woz_22"
@@ -507,9 +684,13 @@ def save_raw_jsonl(task: str, split_set: str, mode: str):
                 outfile.write(json.dumps(example) + "\n")
 
 
-def save_jsonl(objective: str, task: str, split_set: str, content_list: list, mode: str):
+def save_jsonl(
+    objective: str, task: str, split_set: str, content_list: list, mode: str
+):
     os.makedirs(f"./generated/{task}/{objective}/", exist_ok=True)
-    with open(f"./generated/{task}/{objective}/{split_set}_{mode}.jsonl", "w") as outfile:
+    with open(
+        f"./generated/{task}/{objective}/{split_set}_{mode}.jsonl", "w"
+    ) as outfile:
         for content in content_list:
             outfile.write(json.dumps(content) + "\n")
 
@@ -520,7 +701,13 @@ def save_unified_jsonl(output_path: str, unified_dict: dict, mode: str):
     split = 0
     with open(f"{output_path}/validation_{mode}.txt", "a", encoding="utf-8") as log_f:
         for index, value in enumerate(unified_dict["content"]):
-            info = unified_dict["task"][index] + "|" + unified_dict["choices"][index] + "|" + unified_dict["objective"][index]
+            info = (
+                unified_dict["task"][index]
+                + "|"
+                + unified_dict["choices"][index]
+                + "|"
+                + unified_dict["objective"][index]
+            )
             start = split
             end = split + len(value)
             span_log = [start, end]
@@ -536,28 +723,72 @@ def save_unified_jsonl(output_path: str, unified_dict: dict, mode: str):
 def get_arguments():
     # Required parameters
     parser = argparse.ArgumentParser()
-    parser.add_argument("--task", default=["formlm_opt", "formlm_qa", "formlm_block_type"], nargs="+",
-                        help="Please specifiy the task name.")
+    parser.add_argument(
+        "--task",
+        default=["formlm_opt", "formlm_qa", "formlm_block_type"],
+        nargs="+",
+        help="Please specifiy the task name.",
+    )
     # parser.add_argument("--structured_type", default="table", help="Please specify the type of the structured data.", type=str, choices=DATASETS.keys())
-    parser.add_argument("--objective", default=["zero"], nargs="+",
-                        help="Please specify the parsing objective.")  # choices = ['zero', 'heur_{idx}', 'linear_{idx}', oneshot]
-    parser.add_argument("--split", default=["validation"], nargs="+",
-                        help="Please specify which split you want to generate/parse.")  # choices = ['train', 'validation', 'test']
-    parser.add_argument("--linearize_list", default=["html"], nargs="+",
-                        help="Please specify which linearization you want to use.")
-    parser.add_argument("--use_partition_mark", default=False, action="store_true",
-                        help="Please specify whether to use_partition_mark.")
-    parser.add_argument("--use_format_explanation", default=False, action="store_true",
-                        help="Please specify whether to use_format_explanation.")
-    parser.add_argument("--change_order", default=False, action="store_true",
-                        help="Please specify whether the change the order of the table")
-    parser.add_argument("--use_role_prompting", default=False, action="store_true",
-                        help="Please specify whether to assign a role to GPT3")
-    parser.add_argument("--heuristic", default=None, type=str,
-                        help="Please specify which heuristic to use: [heur_8, heur_9]")
-    parser.add_argument("--unified", default=False, action="store_true",
-                        help="generate the unified file for babel input")
-    parser.add_argument("--unified_file_output", default="./exps/downstream_tasks_20230113_log/", type=str)
+    parser.add_argument(
+        "--objective",
+        default=["zero"],
+        nargs="+",
+        help="Please specify the parsing objective.",
+    )  # choices = ['zero', 'heur_{idx}', 'linear_{idx}', oneshot]
+    parser.add_argument(
+        "--split",
+        default=["validation"],
+        nargs="+",
+        help="Please specify which split you want to generate/parse.",
+    )  # choices = ['train', 'validation', 'test']
+    parser.add_argument(
+        "--linearize_list",
+        default=["html"],
+        nargs="+",
+        help="Please specify which linearization you want to use.",
+    )
+    parser.add_argument(
+        "--use_partition_mark",
+        default=False,
+        action="store_true",
+        help="Please specify whether to use_partition_mark.",
+    )
+    parser.add_argument(
+        "--use_format_explanation",
+        default=False,
+        action="store_true",
+        help="Please specify whether to use_format_explanation.",
+    )
+    parser.add_argument(
+        "--change_order",
+        default=False,
+        action="store_true",
+        help="Please specify whether the change the order of the table",
+    )
+    parser.add_argument(
+        "--use_role_prompting",
+        default=False,
+        action="store_true",
+        help="Please specify whether to assign a role to GPT3",
+    )
+    parser.add_argument(
+        "--heuristic",
+        default=None,
+        type=str,
+        help="Please specify which heuristic to use: [heur_8, heur_9]",
+    )
+    parser.add_argument(
+        "--unified",
+        default=False,
+        action="store_true",
+        help="generate the unified file for babel input",
+    )
+    parser.add_argument(
+        "--unified_file_output",
+        default="./exps/downstream_tasks_20230113_log/",
+        type=str,
+    )
     parser.add_argument("--add_table_size", default=True, action="store_true")
     args = parser.parse_args()
     return args
@@ -583,12 +814,23 @@ def task_specific_babel_convertor():
                 args.instruction = f"You are a brilliant {structured_type} executor with the capbilities [retrieve], [input parsing], [metadata inference], [pattern understanding] who can understand the structural information of the {structured_type}.\n"
             else:
                 args.instruction = ""
-            babel_convertor.set_split_obj(task, structured_type, split, obj, args.instruction,
-                                          linear_func, args.use_partition_mark, args.use_format_explanation,
-                                          args.heuristic
-                                          )
+            babel_convertor.set_split_obj(
+                task,
+                structured_type,
+                split,
+                obj,
+                args.instruction,
+                linear_func,
+                args.use_partition_mark,
+                args.use_format_explanation,
+                args.heuristic,
+            )
             # set the validation mode
-            if args.use_partition_mark and args.use_role_prompting and args.use_format_explanation:
+            if (
+                args.use_partition_mark
+                and args.use_role_prompting
+                and args.use_format_explanation
+            ):
                 mode = f"{linear_func}_0_1_3"
             elif args.use_partition_mark and args.use_format_explanation:
                 mode = f"{linear_func}_0_1"
@@ -615,7 +857,9 @@ def task_specific_babel_convertor():
                 unified_dict["task"].append(task)
                 unified_dict["objective"].append(obj)
                 unified_dict["choices"].append(mode)
-            logging.info(f"Task-{task} Objective-{obj} Split-{split} Linear-{linear_func} has been saved..")
+            logging.info(
+                f"Task-{task} Objective-{obj} Split-{split} Linear-{linear_func} has been saved.."
+            )
             # save parsed jsonl
             save_jsonl(obj, task, split, content_list, mode)
 
