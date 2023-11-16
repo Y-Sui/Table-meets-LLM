@@ -1,6 +1,6 @@
 # GPT4Table:
 
-SUC is a useful benchmark for detecting table structural understanding capabilities proposed in the paper " `GPT4Table: Can Large Language Models Understand Structured Table Data? A Benchmark and Empirical Study`".
+SUC is a useful benchmark for detecting table structural understanding capabilities proposed in the paper "GPT4Table: Can Large Language Models Understand Structured Table Data? A Benchmark and Empirical Study".
 
 ### Benchmark Setting
 
@@ -43,11 +43,13 @@ python unified_babel_convertor.py --task totto tabfact hybridqa sqa feverous --o
 
 ## Reference
 
-`@misc{sui2023gpt4table,
+```bash
+@misc{sui2023gpt4table,
       title={GPT4Table: Can Large Language Models Understand Structured Table Data? A Benchmark and Empirical Study}, 
       author={Yuan Sui and Mengyu Zhou and Mingjie Zhou and Shi Han and Dongmei Zhang},
       year={2023},
       eprint={2305.13062},
       archivePrefix={arXiv},
       primaryClass={cs.CL}
-}`
+}
+```
