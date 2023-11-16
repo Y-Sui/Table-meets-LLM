@@ -2,7 +2,7 @@
 
 SUC is a useful benchmark for detecting table structural understanding capabilities proposed in the paper "GPT4Table: Can Large Language Models Understand Structured Table Data? A Benchmark and Empirical Study".
 
-### Benchmark Setting
+## Benchmark Setting
 
 In SUC, we design several specific tasks for each structural understanding capability. The tasks are designed with increasing difficulty. Please find the relevant codes in unified_benchmark_generator.py. The benchmark supports zero-shot, 1-shot and multiple input choices. More detailed commands can be found here.
 
