@@ -1,4 +1,4 @@
-# Table meets LLM
+# Table Meets LLM:
 
 SUC is a useful benchmark for detecting table structural understanding capabilities proposed in the paper "Table Meets LLM: Can Large Language Models Understand Structured Table Data? A Benchmark and Empirical Study".
 
@@ -22,10 +22,6 @@ In SUC, we design several specific tasks for each structural understanding capab
 ## Downstream Tasks Setting
 
 Based on our findings and insights over SUC comparisons, we find that several combination of input designs will highly affect the LLMs performance on SUC tasks. In this paper, we give some guidance on how to apply our benchmark insights to promote LLMs performance on downstream tasks, and examine using  self-augmented prompting to generate additional knowledge with LLMs self-knowledge. The code associated with downstream tasks can be found in unified_babel_convertor.py. The downstream tasks setting support both manual prompting engineering and self-augmented prompting. Multiple prompt choices can be found in config.py.
-
-```bash
-cd table_meets_llm
-```
 
 ```bash
 # generate table/databases downstream tasks
@@ -57,8 +53,3 @@ python unified_babel_convertor.py --task totto tabfact hybridqa sqa feverous --o
       primaryClass={cs.CL}
 }
 ```
-
-
-# Table Provider
-
-**To be continue.**
