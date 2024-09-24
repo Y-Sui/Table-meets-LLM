@@ -1,0 +1,25 @@
+aiohttp
+apex
+datasets
+jsonlines
+matplotlib
+nltk
+numpy
+openai
+pandas
+recognizers_text_suite
+scikit_learn
+scipy
+seaborn
+tabulate
+tenacity
+tiktoken
+torch
+torch_scatter
+tqdm
+transformers
+wikipedia
+
+# experiments logging
+wandb
+
